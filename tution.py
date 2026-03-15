@@ -21,8 +21,8 @@ if "announcements" not in st.session_state:
 if "seen_announcements" not in st.session_state:
     st.session_state.seen_announcements = set()  # indexes of announcements already seen by parent
 
-# ---------------- TEACHER PANEL ----------------
-if st.session_state.role == "teacher":
+# ---------- TEACHER PANEL ----------
+if st.session_state.get("role") == "teacher":
     # Define page selection for teacher
     page = st.sidebar.radio(
         "Navigation",
@@ -40,7 +40,7 @@ if st.session_state.role == "teacher":
                 date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
                 st.session_state.announcements.append({"date": date_now, "text": text.strip()})
                 st.success("Announcement posted!")
-                st.rerun()
+                st.experimental_rerun()  # safer than st.rerun()
 
         # Display all announcements (newest first)
         st.subheader("All Announcements")
@@ -50,8 +50,8 @@ if st.session_state.role == "teacher":
             for ann in reversed(st.session_state.announcements):
                 st.markdown(f"**{ann['date']}** — {ann['text']}")
 
-# ---------------- PARENT PANEL ----------------
-elif st.session_state.role == "parent":
+# ---------- PARENT PANEL ----------
+elif st.session_state.get("role") == "parent":
     page = "Parent View"
 
     # Show popup for new announcements
@@ -61,9 +61,9 @@ elif st.session_state.role == "parent":
             new_announcements.append((idx, ann))
             st.session_state.seen_announcements.add(idx)
 
-    # Streamlit popup notification for new announcements
+    # Streamlit popup notification for new announcements (requires Streamlit >=1.26)
     for idx, ann in new_announcements:
-        st.toast(f"New Announcement: {ann['text']}")  # Streamlit >=1.26 required
+        st.toast(f"New Announcement: {ann['text']}")
 
     # Display all announcements
     st.subheader("📢 Announcements from School")
@@ -71,8 +71,7 @@ elif st.session_state.role == "parent":
         st.info("No announcements yet.")
     else:
         for ann in reversed(st.session_state.announcements):
-            st.markdown(f"**{ann['date']}** — {ann['text']}")
-            
+            st.markdown(f"**{ann['date']}** — {ann['text']}")            
 
 # ---------------- LOAD DATA ----------------
 def load_data(key, columns):
