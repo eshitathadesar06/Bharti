@@ -547,7 +547,6 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    # Get all students linked to this phone number
     children = students_df[
         students_df["phone"].astype(str) == str(phone)
     ]
@@ -557,12 +556,10 @@ elif page == "Parent View":
 
     else:
 
-        # Show only student names
         child_options = children["name"].tolist()
 
         selected_child = st.selectbox("Select Student", child_options)
 
-        # Fetch student
         child = children[children["name"] == selected_child].iloc[0]
 
         st.subheader(child["name"])
@@ -578,7 +575,6 @@ elif page == "Parent View":
         ]
 
         if student_fees.empty:
-
             st.info("No fees recorded")
 
         else:
@@ -600,78 +596,69 @@ elif page == "Parent View":
 
             st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
-      # -------- ATTENDANCE --------
+        # -------- ATTENDANCE --------
 
-st.subheader("Attendance Records")
+        st.subheader("Attendance Records")
 
-attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
 
-student_attendance = attendance_df[
-    attendance_df["student_id"] == str(child["id"])
-]
-
-if student_attendance.empty:
-
-    st.info("No attendance records found for this student.")
-
-else:
-
-    # Convert to datetime
-    student_attendance["date"] = pd.to_datetime(
-        student_attendance["date"],
-        errors="coerce"
-    )
-
-    # Create Month column
-    student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
-
-    months = student_attendance["Month"].dropna().unique().tolist()
-
-    selected_month = st.selectbox(
-        "Select Month",
-        ["All Months"] + months
-    )
-
-    if selected_month != "All Months":
-
-        student_attendance = student_attendance[
-            student_attendance["Month"] == selected_month
+        student_attendance = attendance_df[
+            attendance_df["student_id"] == str(child["id"])
         ]
 
-    # -------- FORMAT TABLE --------
+        if student_attendance.empty:
 
-    attendance_display = student_attendance.copy()
+            st.info("No attendance records found for this student.")
 
-    # Format date
-    attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
+        else:
 
-    attendance_display["Status"] = attendance_display["status"]
+            student_attendance = student_attendance.copy()
 
-    attendance_display = attendance_display[["Date","Status"]]
+            student_attendance["date"] = pd.to_datetime(
+                student_attendance["date"],
+                errors="coerce"
+            )
 
-    # -------- CALCULATE ATTENDANCE % --------
+            student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
 
-    total_days = len(attendance_display)
+            months = student_attendance["Month"].dropna().unique().tolist()
 
-    present_days = len(
-        attendance_display[
-            attendance_display["Status"] == "Present"
-        ]
-    )
+            selected_month = st.selectbox(
+                "Select Month",
+                ["All Months"] + months
+            )
 
-    if total_days > 0:
-        percentage = round((present_days / total_days) * 100, 2)
-    else:
-        percentage = 0
+            if selected_month != "All Months":
 
-    # Show percentage nicely
-    st.metric("Attendance Percentage", f"{percentage}%")
+                student_attendance = student_attendance[
+                    student_attendance["Month"] == selected_month
+                ]
 
-    # Remove index numbers
-    attendance_display = attendance_display.reset_index(drop=True)
+            attendance_display = student_attendance.copy()
 
-    st.dataframe(
-        attendance_display,
-        use_container_width=True,
-        hide_index=True
-    )
+            attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
+
+            attendance_display["Status"] = attendance_display["status"]
+
+            attendance_display = attendance_display[["Date","Status"]]
+
+            total_days = len(attendance_display)
+
+            present_days = len(
+                attendance_display[
+                    attendance_display["Status"] == "Present"
+                ]
+            )
+
+            if total_days > 0:
+                percentage = round((present_days / total_days) * 100, 2)
+            else:
+                percentage = 0
+
+            st.metric("Attendance Percentage", f"{percentage}%")
+
+            st.dataframe(
+                attendance_display,
+                use_container_width=True,
+                hide_index=True
+            )
