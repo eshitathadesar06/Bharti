@@ -173,10 +173,9 @@ elif page == "Student Management":
 
         st.subheader("Add Student")
 
-        c1,c2 = st.columns(2)
+        c1, c2 = st.columns(2)
 
         with c1:
-
             name = st.text_input("Student Name")
 
             standard = st.selectbox(
@@ -185,7 +184,6 @@ elif page == "Student Management":
             )
 
         with c2:
-
             batch = st.selectbox(
                 "Batch",
                 ["Morning","Afternoon","Evening"]
@@ -198,24 +196,40 @@ elif page == "Student Management":
 
         if submit and name:
 
-            new_id = 1 if students_df.empty else int(students_df["id"].astype(int).max())+1
+            # Clean phone input
+            phone_clean = str(phone).replace(".0","").strip()
 
-            new_row = pd.DataFrame(
-                [[new_id,name,standard,batch,parent,phone]],
-                columns=students_df.columns
-            )
+            # Check if student already exists
+            duplicate = students_df[
+                (students_df["name"].str.lower() == name.lower()) &
+                (students_df["phone"].astype(str) == phone_clean)
+            ]
 
-            students_df = pd.concat([students_df,new_row], ignore_index=True)
+            if not duplicate.empty:
 
-            students_df.to_csv(FILES["students"], index=False)
+                st.warning("⚠ Student already exists!")
 
-            st.success("Student added!")
+            else:
 
-            st.rerun()
+                new_id = 1 if students_df.empty else int(students_df["id"].astype(int).max()) + 1
+
+                new_row = pd.DataFrame(
+                    [[new_id, name, standard, batch, parent, phone_clean]],
+                    columns=students_df.columns
+                )
+
+                students_df = pd.concat([students_df, new_row], ignore_index=True)
+
+                students_df.to_csv(FILES["students"], index=False)
+
+                st.success("Student added successfully!")
+
+                st.rerun()
 
     st.subheader("Students List")
 
     st.dataframe(students_df, use_container_width=True)
+
 
     # -------- DELETE STUDENT --------
 
