@@ -287,6 +287,14 @@ elif page == "Attendance":
 
         st.subheader("Mark Attendance")
 
+        # -------- HOLIDAY OPTION --------
+
+        holiday = st.checkbox("☑ Mark Holiday for this Batch")
+
+        if holiday:
+            st.info("Today is marked as Holiday for this batch. Attendance not required.")
+            st.stop()
+
         for _, row in batch_students.iterrows():
 
             sid = str(row["id"])
@@ -302,8 +310,37 @@ elif page == "Attendance":
                 status = st.radio(
                     "Status",
                     ["Present","Absent"],
+                    horizontal=True,
                     key=f"{sid}_{date_str}"
                 )
+
+                # -------- COLOR BUTTONS --------
+
+                if status == "Present":
+                    st.markdown(
+                        """
+                        <style>
+                        div[data-testid="stButton"] > button:first-child {
+                        background-color: #28a745;
+                        color:white;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                if status == "Absent":
+                    st.markdown(
+                        """
+                        <style>
+                        div[data-testid="stButton"] > button:first-child {
+                        background-color: #dc3545;
+                        color:white;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
                 if st.button("Save", key=f"save_{sid}_{date_str}"):
 
