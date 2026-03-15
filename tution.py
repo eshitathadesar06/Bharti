@@ -53,8 +53,8 @@ students_df["phone"] = (
 )
 
 # ---------------- PAGE ----------------
-st.set_page_config(page_title="Tuition Manager", layout="wide")
-st.sidebar.title("📚 Tuition Manager")
+st.set_page_config(page_title="Bharti's Tution", layout="wide")
+st.sidebar.title("📚 Bharti's Tution")
 
 # ---------------- LOGIN ----------------
 role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
@@ -88,7 +88,7 @@ elif role == "Parent":
 
 # Stop if not logged in
 if st.session_state.role is None:
-    st.title("Welcome to Tuition Manager")
+    st.title("Welcome to Bharti's Tution")
     st.info("Please login from sidebar")
     st.stop()
 
