@@ -136,12 +136,13 @@ if role == "Teacher":
         else:
             st.sidebar.error("Invalid login")
 
-    # ---------- Teacher Navigation (below login) ----------
-    if st.session_state.role == "teacher":
-        page = st.sidebar.radio(
-            "Navigation",
-            ["Dashboard","Student Management","Attendance","Fees","Announcements"]
-        )
+   # ---------- Teacher Navigation (below login) ----------
+if st.session_state.role == "teacher":
+    page = st.sidebar.radio(
+        "Navigation",
+        ["Dashboard","Student Management","Attendance","Fees","Announcements"],
+        key="teacher_nav"  # Add a unique key
+    )
 
 # -------- PARENT LOGIN --------
 elif role == "Parent":
@@ -163,9 +164,9 @@ elif role == "Parent":
         else:
             st.sidebar.error("Phone number not found")
 
-    # ---------- Parent Navigation (below login) ----------
-    if st.session_state.role == "parent":
-        page = "Parent View"
+    # ---------- Parent Navigation ----------
+if st.session_state.role == "parent":
+    page = "Parent View"
 
 # ---------------- TEACHER PANEL ----------------
 if st.session_state.role == "teacher":
