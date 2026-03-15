@@ -113,8 +113,8 @@ students_df["phone"] = (
 )
 
 # ---------------- PAGE ----------------
-st.set_page_config(page_title="Tuition Manager", layout="wide")
-st.sidebar.title("📚 Tuition Manager")
+st.set_page_config(page_title="Bharti's Tution", layout="wide")
+st.sidebar.title("📚 Bharti's Tution")
 
 # ---------------- LOGIN ----------------
 role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
