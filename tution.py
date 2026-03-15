@@ -27,7 +27,9 @@ def load_data(key, columns):
         return df
 
     try:
-        return pd.read_csv(path, dtype=str)
+        df = pd.read_csv(path, dtype=str)
+        df = df.fillna("")
+        return df
     except:
         df = pd.DataFrame(columns=columns)
         df.to_csv(path, index=False)
@@ -49,6 +51,15 @@ fees_df = load_data(
     ["date","student_id","amount","month","method"]
 )
 
+# ---------------- CLEAN PHONE NUMBERS ----------------
+
+students_df["phone"] = (
+    students_df["phone"]
+    .astype(str)
+    .str.replace(".0","",regex=False)
+    .str.strip()
+)
+
 # ---------------- PAGE ----------------
 
 st.set_page_config(page_title="Tuition Manager", layout="wide")
@@ -61,6 +72,8 @@ role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
 
 if "role" not in st.session_state:
     st.session_state.role = None
+
+# -------- TEACHER LOGIN --------
 
 if role == "Teacher":
 
@@ -77,6 +90,7 @@ if role == "Teacher":
         else:
             st.sidebar.error("Invalid login")
 
+# -------- PARENT LOGIN --------
 
 elif role == "Parent":
 
@@ -84,29 +98,29 @@ elif role == "Parent":
 
     if st.sidebar.button("Login"):
 
+        phone_clean = str(phone).replace(".0","").strip()
+
         parent = students_df[
-            students_df["phone"].astype(str) == str(phone)
+            students_df["phone"] == phone_clean
         ]
 
         if not parent.empty:
 
             st.session_state.role = "parent"
-            st.session_state.parent_phone = str(phone)
-
+            st.session_state.parent_phone = phone_clean
             st.rerun()
 
         else:
             st.sidebar.error("Phone number not found")
 
-
 # Stop if not logged in
+
 if st.session_state.role is None:
 
     st.title("Welcome to Tuition Manager")
     st.info("Please login from sidebar")
 
     st.stop()
-
 
 # ---------------- TEACHER PANEL ----------------
 
@@ -178,7 +192,6 @@ elif page == "Student Management":
             )
 
             parent = st.text_input("Parent Name")
-
             phone = st.text_input("Phone Number")
 
         submit = st.form_submit_button("Add Student")
@@ -200,11 +213,9 @@ elif page == "Student Management":
 
             st.rerun()
 
-
     st.subheader("Students List")
 
     st.dataframe(students_df, use_container_width=True)
-
 
     # -------- DELETE STUDENT --------
 
@@ -359,7 +370,7 @@ elif page == "Parent View":
     phone = st.session_state.parent_phone
 
     child = students_df[
-        students_df["phone"].astype(str) == str(phone)
+        students_df["phone"] == phone
     ]
 
     if child.empty:
