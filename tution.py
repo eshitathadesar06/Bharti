@@ -153,6 +153,33 @@ elif page == "Student Management":
 
     st.dataframe(students_df, use_container_width=True)
 
+    st.markdown("---")
+
+    # -------- DELETE STUDENT FEATURE --------
+
+    st.subheader("Delete Student")
+
+    if not students_df.empty:
+
+        student_to_delete = st.selectbox(
+            "Select Student to Delete",
+            students_df["name"]
+        )
+
+        if st.button("Delete Student"):
+
+            students_df = students_df[
+                students_df["name"] != student_to_delete
+            ]
+
+            students_df.to_csv(FILES["students"], index=False)
+
+            st.success(f"{student_to_delete} deleted successfully")
+
+            st.rerun()
+
+    else:
+        st.info("No students available to delete.")
 # ---------------- ATTENDANCE ----------------
 
 elif page == "Attendance":
