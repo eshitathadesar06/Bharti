@@ -1,28 +1,50 @@
-import streamlit as st
 import pandas as pd
 from datetime import datetime
+import streamlit as st
 
 # -------------------- Data Setup --------------------
+# Define expected columns
+student_cols = ['StudentID','Name','Batch','Phone','MotherName','ParentID']
+attendance_cols = ['StudentID','Date','Status']
+fees_cols = ['StudentID','Month','Amount']
+announcements_cols = ['Date','Announcement']
+
+# Load or create CSVs safely
 try:
     students_df = pd.read_csv("students.csv")
+    for col in student_cols:
+        if col not in students_df.columns:
+            students_df[col] = ""
 except:
-    students_df = pd.DataFrame(columns=['StudentID','Name','Batch','Phone','MotherName','ParentID'])
+    students_df = pd.DataFrame(columns=student_cols)
 
 try:
     attendance_df = pd.read_csv("attendance.csv")
+    for col in attendance_cols:
+        if col not in attendance_df.columns:
+            attendance_df[col] = ""
 except:
-    attendance_df = pd.DataFrame(columns=['StudentID','Date','Status'])
+    attendance_df = pd.DataFrame(columns=attendance_cols)
 
 try:
     fees_df = pd.read_csv("fees.csv")
+    for col in fees_cols:
+        if col not in fees_df.columns:
+            fees_df[col] = ""
 except:
-    fees_df = pd.DataFrame(columns=['StudentID','Month','Amount'])
+    fees_df = pd.DataFrame(columns=fees_cols)
 
 try:
     announcements_df = pd.read_csv("announcements.csv")
+    for col in announcements_cols:
+        if col not in announcements_df.columns:
+            announcements_df[col] = ""
 except:
-    announcements_df = pd.DataFrame(columns=['Date','Announcement'])
+    announcements_df = pd.DataFrame(columns=announcements_cols)
 
+# Ensure Date column is string
+if 'Date' in attendance_df.columns:
+    attendance_df['Date'] = attendance_df['Date'].astype(str)
 # -------------------- Sidebar Navigation --------------------
 st.sidebar.title("Tuition Manager")
 menu = st.sidebar.radio("Navigation", ["Dashboard", "Students", "Fees", "Parent Portal", "Announcements"])
