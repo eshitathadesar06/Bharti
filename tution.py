@@ -1,157 +1,134 @@
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime
+# ---------------- PARENT VIEW ----------------
 
-# -------------------- Data Setup --------------------
-# Load or create student and fees data
-try:
-    students_df = pd.read_csv("students.csv")
-except:
-    students_df = pd.DataFrame(columns=['StudentID','Name','Batch','Phone','MotherName','ParentID'])
+elif page == "Parent View":
 
-try:
-    attendance_df = pd.read_csv("attendance.csv")
-except:
-    attendance_df = pd.DataFrame(columns=['StudentID','Date','Status'])
+    st.title("👨‍👩‍👧 Parent Portal")
 
-try:
-    fees_df = pd.read_csv("fees.csv")
-except:
-    fees_df = pd.DataFrame(columns=['StudentID','Month','Amount'])
+    phone = st.session_state.parent_phone
 
-try:
-    announcements_df = pd.read_csv("announcements.csv")
-except:
-    announcements_df = pd.DataFrame(columns=['Date','Announcement'])
+    # Get all students linked to this phone number
+    children = students_df[
+        students_df["phone"].astype(str) == str(phone)
+    ]
 
-# -------------------- Sidebar Navigation --------------------
-st.sidebar.title("Tuition Manager")
-menu = st.sidebar.radio("Navigation", ["Dashboard", "Students", "Fees", "Parent Portal", "Announcements"])
+    if children.empty:
+        st.warning("No students found for this phone number")
 
-# -------------------- Dashboard --------------------
-if menu == "Dashboard":
-    st.title("Dashboard")
-    
-    total_students = len(students_df)
-    today = datetime.today().date()
-    today_attendance = attendance_df[attendance_df['Date'] == str(today)]
-    attended_students = today_attendance[today_attendance['Status'] == "Present"]
-    monthly_attendance_percent = (len(attended_students)/total_students*100) if total_students > 0 else 0
-    
-    st.subheader("Metrics")
-    st.write(f"**Total Students:** {total_students}")
-    st.write(f"**Today's Attendance:** {len(attended_students)}")
-    st.write(f"**Monthly Attendance %:** {monthly_attendance_percent:.2f}%")
-    
-    # Attendance Graph
-    st.subheader("Attendance Graph")
-    if not attendance_df.empty:
-        attendance_df['Date'] = pd.to_datetime(attendance_df['Date'])
-        daily_attendance = attendance_df[attendance_df['Status']=="Present"].groupby('Date').count()['StudentID']
-        plt.figure(figsize=(10,4))
-        daily_attendance.plot(kind='bar', color='skyblue')
-        plt.ylabel("Present Students")
-        plt.xlabel("Date")
-        plt.title("Daily Attendance")
-        st.pyplot(plt)
     else:
-        st.write("No attendance data yet.")
 
-# -------------------- Students --------------------
-elif menu == "Students":
-    st.title("Student Management")
-    
-    batch_filter = st.selectbox("Select Batch", ["All"] + list(students_df['Batch'].unique()))
-    search_name = st.text_input("Search by Name")
-    
-    filtered_df = students_df.copy()
-    if batch_filter != "All":
-        filtered_df = filtered_df[filtered_df['Batch']==batch_filter]
-    if search_name:
-        filtered_df = filtered_df[filtered_df['Name'].str.contains(search_name, case=False)]
-    
-    st.dataframe(filtered_df)
-    
-    # Attendance entry
-    st.subheader("Mark Attendance")
-    student_options = filtered_df['Name'].tolist()
-    selected_student = st.selectbox("Select Student", student_options)
-    status = st.radio("Status", ["Present", "Absent"])
-    
-    if st.button("Submit Attendance"):
-        student_id = students_df[students_df['Name']==selected_student]['StudentID'].values[0]
-        today_str = str(datetime.today().date())
-        
-        # Overwrite if exists
-        attendance_df = attendance_df[~((attendance_df['StudentID']==student_id) & (attendance_df['Date']==today_str))]
-        attendance_df = pd.concat([attendance_df, pd.DataFrame({'StudentID':[student_id],'Date':[today_str],'Status':[status]})])
-        attendance_df.to_csv("attendance.csv", index=False)
-        st.success("Attendance recorded successfully!")
+        # Show only student names
+        child_options = children["name"].tolist()
 
-# -------------------- Fees --------------------
-elif menu == "Fees":
-    st.title("Manage Fees")
-    
-    student_name = st.selectbox("Select Student", students_df['Name'].tolist())
-    month = st.selectbox("Month", pd.date_range('2026-01-01', periods=12, freq='M').strftime('%B'))
-    amount = st.number_input("Fee Amount", min_value=0)
-    
-    if st.button("Submit Fee"):
-        student_id = students_df[students_df['Name']==student_name]['StudentID'].values[0]
-        # Overwrite existing month
-        fees_df = fees_df[~((fees_df['StudentID']==student_id) & (fees_df['Month']==month))]
-        fees_df = pd.concat([fees_df, pd.DataFrame({'StudentID':[student_id],'Month':[month],'Amount':[amount]})])
-        fees_df.to_csv("fees.csv", index=False)
-        st.success("Fee recorded successfully!")
-    
-    # View fees
-    st.subheader("Monthly Fees")
-    st.dataframe(fees_df.merge(students_df[['StudentID','Name']], on='StudentID')[['Name','Month','Amount']])
+        selected_child = st.selectbox("Select Student", child_options)
 
-# -------------------- Parent Portal --------------------
-elif menu == "Parent Portal":
-    st.title("Parent Portal")
-    
-    parent_ids = students_df['ParentID'].unique()
-    selected_parent = st.selectbox("Select Parent", parent_ids)
-    
-    # Children switch
-    children = students_df[students_df['ParentID']==selected_parent]
-    child_name = st.selectbox("Select Child", children['Name'])
-    
-    st.subheader(f"Attendance for {child_name}")
-    student_id = children[children['Name']==child_name]['StudentID'].values[0]
-    student_attendance = attendance_df[attendance_df['StudentID']==student_id]
-    
-    if not student_attendance.empty:
-        student_attendance['Date'] = pd.to_datetime(student_attendance['Date'])
-        present_count = len(student_attendance[student_attendance['Status']=="Present"])
-        total_count = len(student_attendance)
-        percentage = (present_count/total_count*100) if total_count>0 else 0
-        st.write(f"**Attendance Percentage:** {percentage:.2f}%")
-        st.dataframe(student_attendance[['Date','Status']])
-    else:
-        st.write("No attendance data available.")
-    
-    st.subheader(f"Fees for {child_name}")
-    child_fees = fees_df[fees_df['StudentID']==student_id]
-    st.dataframe(child_fees[['Month','Amount']])
+        # Fetch student
+        child = children[children["name"] == selected_child].iloc[0]
 
-# -------------------- Announcements --------------------
-elif menu == "Announcements":
-    st.title("Announcements")
-    
-    if "Admin" in st.session_state.get("role", ["Admin"]):  # Replace with actual admin check
-        st.subheader("Add Announcement")
-        new_announcement = st.text_area("Announcement Text")
-        if st.button("Add Announcement"):
-            announcements_df = pd.concat([announcements_df, pd.DataFrame({'Date':[str(datetime.today().date())],'Announcement':[new_announcement]})])
-            announcements_df.to_csv("announcements.csv", index=False)
-            st.success("Announcement added!")
-    
-    st.subheader("All Announcements")
-    if not announcements_df.empty:
-        st.dataframe(announcements_df.sort_values('Date', ascending=False))
-    else:
-        st.write("No announcements yet.")
+        st.subheader(child["name"])
+        st.write("Standard:", child["standard"])
+        st.write("Batch:", child["batch"])
+
+        # -------- FEE HISTORY --------
+
+        st.subheader("Fee History")
+
+        student_fees = fees_df[
+            fees_df["student_id"].astype(str) == str(child["id"])
+        ]
+
+        if student_fees.empty:
+
+            st.info("No fees recorded")
+
+        else:
+
+            fees_display = student_fees.copy()
+
+            fees_display["Student Name"] = child["name"]
+
+            fees_display = fees_display.rename(columns={
+                "date": "Payment Date",
+                "month": "Fee Month",
+                "amount": "Amount",
+                "method": "Payment Method"
+            })
+
+            fees_display = fees_display[
+                ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
+            ]
+
+            st.dataframe(fees_display, use_container_width=True, hide_index=True)
+
+        # -------- ATTENDANCE --------
+
+        st.subheader("Attendance Records")
+
+        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+
+        student_attendance = attendance_df[
+            attendance_df["student_id"] == str(child["id"])
+        ]
+
+        if student_attendance.empty:
+
+            st.info("No attendance records found for this student.")
+
+        else:
+
+            # Convert to datetime
+            student_attendance["date"] = pd.to_datetime(
+                student_attendance["date"],
+                errors="coerce"
+            )
+
+            # Create Month column
+            student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
+
+            months = student_attendance["Month"].dropna().unique().tolist()
+
+            selected_month = st.selectbox(
+                "Select Month",
+                ["All Months"] + months
+            )
+
+            if selected_month != "All Months":
+
+                student_attendance = student_attendance[
+                    student_attendance["Month"] == selected_month
+                ]
+
+            # -------- FORMAT TABLE --------
+
+            attendance_display = student_attendance.copy()
+
+            attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
+
+            attendance_display["Status"] = attendance_display["status"]
+
+            attendance_display = attendance_display[["Date","Status"]]
+
+            # -------- CALCULATE ATTENDANCE % --------
+
+            total_days = len(attendance_display)
+
+            present_days = len(
+                attendance_display[
+                    attendance_display["Status"] == "Present"
+                ]
+            )
+
+            if total_days > 0:
+                percentage = round((present_days / total_days) * 100, 2)
+            else:
+                percentage = 0
+
+            # Show percentage
+            st.metric("Attendance Percentage", f"{percentage}%")
+
+            attendance_display = attendance_display.reset_index(drop=True)
+
+            st.dataframe(
+                attendance_display,
+                use_container_width=True,
+                hide_index=True
+            )
