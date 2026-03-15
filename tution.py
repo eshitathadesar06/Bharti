@@ -231,52 +231,35 @@ elif page == "Attendance":
     batch_students = students_df[students_df["batch"] == batch]
 
     if batch_students.empty:
-
         st.warning("No students in this batch")
 
     else:
-
-        for _,row in batch_students.iterrows():
-
+        st.subheader("Mark Attendance")
+        for _, row in batch_students.iterrows():
             sid = row["id"]
             name = row["name"]
 
-            col1,col2 = st.columns([1,4])
+            # Check if already marked
+            current = attendance_df[
+                (attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid)
+            ]
+            default_status = "Present" if not current.empty and current.iloc[0]["status"]=="Present" else "Absent"
 
-            with col1:
+            # Use radio button to mark status
+            status = st.radio(f"{name} ({row['standard']})", ["Present", "Absent"], index=0 if default_status=="Present" else 1, key=f"att_{sid}")
 
-                if st.button("Toggle", key=f"{sid}{date_str}"):
-
-                    current = attendance_df[
-                        (attendance_df["date"]==date_str)
-                        & (attendance_df["student_id"]==sid)
-                    ]
-
-                    status = "Present"
-
-                    if not current.empty and current.iloc[0]["status"]=="Present":
-                        status = "Absent"
-
-                    attendance_df = attendance_df[
-                        ~(
-                            (attendance_df["date"]==date_str)
-                            & (attendance_df["student_id"]==sid)
-                        )
-                    ]
-
-                    new = pd.DataFrame(
-                        [[date_str,sid,status]],
-                        columns=["date","student_id","status"]
-                    )
-
-                    attendance_df = pd.concat([attendance_df,new], ignore_index=True)
-
-                    attendance_df.to_csv(FILES["attendance"], index=False)
-
-                    st.rerun()
-
-            with col2:
-                st.write(f"{name} ({row['standard']})")
+            # Save attendance immediately when changed
+            if st.button(f"Save {name}", key=f"save_{sid}"):
+                # Remove previous entry
+                attendance_df = attendance_df[
+                    ~((attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid))
+                ]
+                # Add new entry
+                new = pd.DataFrame([[date_str, sid, status]], columns=["date","student_id","status"])
+                attendance_df = pd.concat([attendance_df,new], ignore_index=True)
+                attendance_df.to_csv(FILES["attendance"], index=False)
+                st.success(f"Attendance for {name} saved!")
+                st.experimental_rerun()
 
 
 # ---------------- FEES ----------------
