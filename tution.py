@@ -268,32 +268,40 @@ elif page == "Attendance":
 
     date = st.date_input("Date", datetime.now())
 
-    batch = st.selectbox(
-        "Batch",
-        ["Morning","Afternoon","Evening"]
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        batch = st.selectbox(
+            "Batch",
+            ["Morning", "Afternoon", "Evening"]
+        )
+
+    # -------- STANDARD FILTER --------
+    with col2:
+        standards = sorted(students_df["standard"].dropna().unique())
+        standard_filter = st.selectbox(
+            "Standard",
+            ["All"] + list(standards)
+        )
 
     date_str = date.strftime("%Y-%m-%d")
 
+    # -------- FILTER STUDENTS --------
     batch_students = students_df[
         students_df["batch"] == batch
     ]
 
-    if batch_students.empty:
+    if standard_filter != "All":
+        batch_students = batch_students[
+            batch_students["standard"] == standard_filter
+        ]
 
-        st.warning("No students in this batch")
+    if batch_students.empty:
+        st.warning("No students found for this batch/standard")
 
     else:
 
         st.subheader("Mark Attendance")
-
-        # -------- HOLIDAY OPTION --------
-
-        holiday = st.checkbox("☑ Mark Holiday for this Batch")
-
-        if holiday:
-            st.info("Today is marked as Holiday for this batch. Attendance not required.")
-            st.stop()
 
         for _, row in batch_students.iterrows():
 
@@ -309,38 +317,10 @@ elif page == "Attendance":
 
                 status = st.radio(
                     "Status",
-                    ["Present","Absent"],
+                    ["Present", "Absent"],
                     horizontal=True,
                     key=f"{sid}_{date_str}"
                 )
-
-                # -------- COLOR BUTTONS --------
-
-                if status == "Present":
-                    st.markdown(
-                        """
-                        <style>
-                        div[data-testid="stButton"] > button:first-child {
-                        background-color: #28a745;
-                        color:white;
-                        }
-                        </style>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                if status == "Absent":
-                    st.markdown(
-                        """
-                        <style>
-                        div[data-testid="stButton"] > button:first-child {
-                        background-color: #dc3545;
-                        color:white;
-                        }
-                        </style>
-                        """,
-                        unsafe_allow_html=True
-                    )
 
                 if st.button("Save", key=f"save_{sid}_{date_str}"):
 
