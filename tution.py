@@ -315,28 +315,41 @@ elif page == "Fees":
                     fees_df.to_csv(FILES["fees"], index=False)
                     st.success(f"Fee record deleted for {del_student}, {del_month}")
                     st.rerun()
-
 # ---------------- PARENT VIEW ----------------
 elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
+
     phone = st.session_state.parent_phone
-    child = students_df[students_df["phone"]==phone]
-    if child.empty:
-        st.warning("Student not found")
+
+    children = students_df[students_df["phone"] == phone]
+
+    if children.empty:
+        st.warning("No students found for this phone number")
     else:
-        child = child.iloc[0]
+        # If multiple children, let parent select
+        if len(children) > 1:
+            child_name = st.selectbox("Select Child", children["name"])
+            child = children[children["name"] == child_name].iloc[0]
+        else:
+            child = children.iloc[0]
+
         st.subheader(child["name"])
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
+
         st.subheader("Fee History")
-        fees = fees_df[fees_df["student_id"]==str(child["id"])]
+
+        # Show fees with student names
+        fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="inner")
+        fees = fees[fees["name"] == child["name"]]  # only this child
         if fees.empty:
             st.info("No fees recorded")
         else:
-            st.dataframe(fees)
-        st.subheader("Attendance Percentage")
-        student_att = attendance_df[attendance_df["student_id"]==str(child["id"])]
-        total_days = len(student_att)
-        present_days = len(student_att[student_att["status"]=="Present"])
-        percent = (present_days/total_days*100) if total_days>0 else 0
-        st.write(f"{percent:.2f}%")
+            fees_display = fees.rename(columns={
+                "name": "Student Name",
+                "date": "Payment Date",
+                "month": "Fee Month",
+                "amount": "Amount",
+                "method": "Payment Method"
+            })[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
+            st.dataframe(fees_display, use_container_width=True)
