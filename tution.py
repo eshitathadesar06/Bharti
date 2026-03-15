@@ -120,12 +120,16 @@ if page == "Announcements" and st.session_state.role == "teacher":
         st.subheader("Add New Announcement")
         title = st.text_input("Title")
         message = st.text_area("Message")
+        # Add Standard selection
+        standards = ["All"] + ["Jr KG","Sr KG","1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"]
+        standard = st.selectbox("Select Standard", standards)
+        
         submit = st.form_submit_button("Post Announcement")
         if submit and title and message:
-            # Save only the date (no time)
+            # Save announcement with standard info
             new_row = pd.DataFrame(
-                [[datetime.now().strftime("%Y-%m-%d"), title, message]],
-                columns=["date","title","message"]
+                [[datetime.now().strftime("%Y-%m-%d"), title, message, standard]],
+                columns=["date","title","message","standard"]
             )
             announcements_df = pd.concat([announcements_df, new_row], ignore_index=True)
             announcements_df.to_csv(announcements_file, index=False)
@@ -137,7 +141,7 @@ if page == "Announcements" and st.session_state.role == "teacher":
         st.subheader("Existing Announcements")
         announcements_df = announcements_df.sort_values("date", ascending=False)
         for i, row in announcements_df.iterrows():
-            st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
+            st.markdown(f"**{row['title']}**  _(Posted on {row['date']}, Standard: {row['standard']})_")
             st.write(row["message"])
             if st.button(f"Delete {i}"):
                 announcements_df = announcements_df.drop(i)
