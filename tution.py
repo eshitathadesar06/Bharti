@@ -128,6 +128,10 @@ if "parent_phone" not in st.session_state:
     st.session_state.parent_phone = None
 if "selected_child" not in st.session_state:
     st.session_state.selected_child = None
+if "announcements" not in st.session_state:
+    st.session_state.announcements = []  # list of dicts {"date":..., "text":...}
+if "seen_announcements" not in st.session_state:
+    st.session_state.seen_announcements = set()  # indexes already seen by parent
 
 # ---------- ROLE SELECTION ----------
 role = st.sidebar.selectbox("Login As", ["Teacher", "Parent"])
@@ -180,42 +184,47 @@ elif st.session_state.get("role") == "parent":
 
 # ---------- ANNOUNCEMENTS ----------
 if st.session_state.get("role") == "teacher" and page == "Announcements":
-    # Your fixed teacher announcements code here
+    st.title("📢 Announcements")
+
+    # Form to post new announcement
+    with st.form("add_announcement"):
+        text = st.text_area("Write Announcement", "")
+        submit = st.form_submit_button("Post Announcement")
+        if submit and text.strip():
+            date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            st.session_state.announcements.append({"date": date_now, "text": text.strip()})
+            st.success("Announcement posted!")
+            st.experimental_rerun()
+
+    # Display all announcements (newest first)
+    st.subheader("All Announcements")
+    if not st.session_state.announcements:
+        st.info("No announcements yet.")
+    else:
+        for ann in reversed(st.session_state.announcements):
+            st.markdown(f"**{ann['date']}** — {ann['text']}")
+
 elif st.session_state.get("role") == "parent":
-    # Your fixed parent announcements code here
+    page = "Parent View"
 
-# ---------------- DASHBOARD ----------------
+    # Show popup for new announcements
+    new_announcements = []
+    for idx, ann in enumerate(st.session_state.announcements):
+        if idx not in st.session_state.seen_announcements:
+            new_announcements.append((idx, ann))
+            st.session_state.seen_announcements.add(idx)
 
-if page == "Dashboard":
+    for idx, ann in new_announcements:
+        st.toast(f"New Announcement: {ann['text']}")  # Requires Streamlit >=1.26
 
-    st.title("📊 Dashboard")
-
-    col1,col2,col3 = st.columns(3)
-
-    col1.metric("Total Students", len(students_df))
-
-    # ---------------- FIXED FEES THIS MONTH ----------------
-    # Only include fees for students that exist
-    valid_fees = fees_df.merge(
-        students_df[["id"]],
-        left_on="student_id",
-        right_on="id",
-        how="inner"
-    )
-
-    month = datetime.now().strftime("%Y-%m")
-    month_fees = valid_fees[
-        valid_fees["date"].astype(str).str.startswith(month)
-    ]["amount"].astype(float).sum()
-    # --------------------------------------------------------
-
-    col2.metric("Fees This Month", f"₹{month_fees}")
-
-    col3.metric("Total Batches", students_df["batch"].nunique())
-
-    if not students_df.empty:
-        st.bar_chart(students_df["standard"].value_counts())
-
+    # Display all announcements
+    st.subheader("📢 Announcements from School")
+    if not st.session_state.announcements:
+        st.info("No announcements yet.")
+    else:
+        for ann in reversed(st.session_state.announcements):
+            st.markdown(f"**{ann['date']}** — {ann['text']}")
+            
 # ---------------- STUDENT MANAGEMENT ----------------
 elif page == "Student Management":
     st.title("👨‍🎓 Student Management")
