@@ -460,7 +460,6 @@ elif page == "Fees":
 
             st.dataframe(fees_display, use_container_width=True)
 
-
 # ---------------- PARENT VIEW ----------------
 
 elif page == "Parent View":
@@ -475,55 +474,69 @@ elif page == "Parent View":
     ]
 
     if children.empty:
-
         st.warning("No students found for this phone number")
 
     else:
-
         # Always show student selection dropdown
-        child_names = children["name"].tolist()
+        # Use name + ID to avoid duplicate names
+        child_options = children.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
+        selected_child = st.selectbox("Select Student", child_options)
 
-        selected_child = st.selectbox(
-            "Select Student",
-            child_names
-        )
+        # Extract student ID from selection
+        child_id = selected_child.split("(")[-1].replace(")", "")
 
-        child = children[
-            children["name"] == selected_child
-        ].iloc[0]
+        # Fetch student safely using ID
+        child = children[children["id"].astype(str) == child_id].iloc[0]
 
         st.subheader(child["name"])
-
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
         # -------- FEE HISTORY --------
-
         st.subheader("Fee History")
 
-        fees = fees_df[
-            fees_df["student_id"].astype(str) == str(child["id"])
-        ]
+        student_fees = fees_df[fees_df["student_id"].astype(str) == str(child["id"])]
 
-        if fees.empty:
-
+        if student_fees.empty:
             st.info("No fees recorded")
-
         else:
-
-            fees_display = fees.copy()
-
+            fees_display = student_fees.copy()
             fees_display["Student Name"] = child["name"]
-
             fees_display = fees_display.rename(columns={
                 "date": "Payment Date",
                 "month": "Fee Month",
                 "amount": "Amount",
                 "method": "Payment Method"
             })
-
             fees_display = fees_display[
                 ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
             ]
-
             st.dataframe(fees_display, use_container_width=True)
+
+        # -------- ATTENDANCE --------
+        st.subheader("Attendance Records")
+
+        # Ensure student_id column in attendance is string
+        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+
+        student_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
+
+        if student_attendance.empty:
+            st.info("No attendance records found for this student.")
+        else:
+            attendance_display = student_attendance.copy()
+            
+            # Format date if column exists
+            if "date" in attendance_display.columns:
+                attendance_display["date"] = pd.to_datetime(attendance_display["date"], errors='coerce')
+                attendance_display = attendance_display.sort_values("date")
+            
+            # Keep only relevant columns if available
+            if "status" in attendance_display.columns:
+                attendance_display = attendance_display[["date", "status"]].rename(
+                    columns={"date": "Date", "status": "Status"}
+                )
+            else:
+                attendance_display = attendance_display.rename(columns={"date": "Date"})
+            
+            st.dataframe(attendance_display, use_container_width=True)
