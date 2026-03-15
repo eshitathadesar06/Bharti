@@ -462,6 +462,8 @@ elif page == "Fees":
 
 # ---------------- PARENT VIEW ----------------
 
+# ---------------- PARENT VIEW ----------------
+
 elif page == "Parent View":
 
     st.title("👨‍👩‍👧 Parent Portal")
@@ -477,7 +479,7 @@ elif page == "Parent View":
         st.warning("No students found for this phone number")
 
     else:
-        # Always show student selection dropdown
+        # ---------------- STUDENT SELECTION ----------------
         # Use name + ID to avoid duplicate names
         child_options = children.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         selected_child = st.selectbox("Select Student", child_options)
@@ -524,19 +526,26 @@ elif page == "Parent View":
         if student_attendance.empty:
             st.info("No attendance records found for this student.")
         else:
+            # ---------------- MONTH FILTER ----------------
+            # Extract unique months from attendance dates
+            if "date" in student_attendance.columns:
+                student_attendance["date"] = pd.to_datetime(student_attendance["date"], errors='coerce')
+                student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
+                months = student_attendance["Month"].dropna().unique().tolist()
+                selected_month = st.selectbox("Select Month", ["All Months"] + months)
+
+                if selected_month != "All Months":
+                    student_attendance = student_attendance[student_attendance["Month"] == selected_month]
+
+            # Display attendance table
             attendance_display = student_attendance.copy()
             
-            # Format date if column exists
-            if "date" in attendance_display.columns:
-                attendance_display["date"] = pd.to_datetime(attendance_display["date"], errors='coerce')
-                attendance_display = attendance_display.sort_values("date")
-            
-            # Keep only relevant columns if available
-            if "status" in attendance_display.columns:
+            # Keep relevant columns
+            if "status" in attendance_display.columns and "date" in attendance_display.columns:
                 attendance_display = attendance_display[["date", "status"]].rename(
                     columns={"date": "Date", "status": "Status"}
                 )
-            else:
+            elif "date" in attendance_display.columns:
                 attendance_display = attendance_display.rename(columns={"date": "Date"})
             
-            st.dataframe(attendance_display, use_container_width=True)
+            st.dataframe(attendance_display.sort_values("Date"), use_container_width=True)
