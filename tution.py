@@ -1,174 +1,110 @@
-import pandas as pd
-from datetime import datetime
-import streamlit as st
+# ---------------- FEES ----------------
 
-# -------------------- Data Setup --------------------
-# Define expected columns
-student_cols = ['StudentID','Name','Batch','Phone','MotherName','ParentID']
-attendance_cols = ['StudentID','Date','Status']
-fees_cols = ['StudentID','Month','Amount']
-announcements_cols = ['Date','Announcement']
+elif page == "Fees":
 
-# Load or create CSVs safely
-try:
-    students_df = pd.read_csv("students.csv")
-    for col in student_cols:
-        if col not in students_df.columns:
-            students_df[col] = ""
-except:
-    students_df = pd.DataFrame(columns=student_cols)
+    st.title("💰 Fee Collection")
 
-try:
-    attendance_df = pd.read_csv("attendance.csv")
-    for col in attendance_cols:
-        if col not in attendance_df.columns:
-            attendance_df[col] = ""
-except:
-    attendance_df = pd.DataFrame(columns=attendance_cols)
+    if students_df.empty:
 
-try:
-    fees_df = pd.read_csv("fees.csv")
-    for col in fees_cols:
-        if col not in fees_df.columns:
-            fees_df[col] = ""
-except:
-    fees_df = pd.DataFrame(columns=fees_cols)
+        st.warning("Add students first")
 
-try:
-    announcements_df = pd.read_csv("announcements.csv")
-    for col in announcements_cols:
-        if col not in announcements_df.columns:
-            announcements_df[col] = ""
-except:
-    announcements_df = pd.DataFrame(columns=announcements_cols)
-
-# Ensure Date column is string
-if 'Date' in attendance_df.columns:
-    attendance_df['Date'] = attendance_df['Date'].astype(str)
-# -------------------- Sidebar Navigation --------------------
-st.sidebar.title("Tuition Manager")
-menu = st.sidebar.radio("Navigation", ["Dashboard", "Students", "Fees", "Parent Portal", "Announcements"])
-
-# -------------------- Dashboard --------------------
-if menu == "Dashboard":
-    st.title("Dashboard")
-    
-    total_students = len(students_df)
-    today = datetime.today().date()
-    today_attendance = attendance_df[attendance_df['Date']==str(today)]
-    attended_students = today_attendance[today_attendance['Status']=="Present"]
-    monthly_attendance_percent = (len(attended_students)/total_students*100) if total_students>0 else 0
-    
-    st.subheader("Metrics")
-    st.write(f"**Total Students:** {total_students}")
-    st.write(f"**Today's Attendance:** {len(attended_students)}")
-    st.write(f"**Monthly Attendance %:** {monthly_attendance_percent:.2f}%")
-    
-    # Attendance graph using Streamlit
-    st.subheader("Attendance Graph")
-    if not attendance_df.empty:
-        daily_attendance = attendance_df[attendance_df['Status']=="Present"].groupby('Date').count()['StudentID']
-        st.bar_chart(daily_attendance)
     else:
-        st.write("No attendance data yet.")
 
-# -------------------- Students --------------------
-elif menu == "Students":
-    st.title("Student Management")
-    
-    batch_filter = st.selectbox("Select Batch", ["All"] + list(students_df['Batch'].unique()))
-    search_name = st.text_input("Search by Name")
-    
-    filtered_df = students_df.copy()
-    if batch_filter != "All":
-        filtered_df = filtered_df[filtered_df['Batch']==batch_filter]
-    if search_name:
-        filtered_df = filtered_df[filtered_df['Name'].str.contains(search_name, case=False)]
-    
-    st.dataframe(filtered_df)
-    
-    st.subheader("Mark Attendance")
-    student_options = filtered_df['Name'].tolist()
-    if student_options:
-        selected_student = st.selectbox("Select Student", student_options)
-        status = st.radio("Status", ["Present","Absent"])
-        
-        if st.button("Submit Attendance"):
-            student_id = students_df[students_df['Name']==selected_student]['StudentID'].values[0]
-            today_str = str(datetime.today().date())
-            
-            # Overwrite if exists
-            attendance_df = attendance_df[~((attendance_df['StudentID']==student_id) & (attendance_df['Date']==today_str))]
-            attendance_df = pd.concat([attendance_df, pd.DataFrame({'StudentID':[student_id],'Date':[today_str],'Status':[status]})])
-            attendance_df.to_csv("attendance.csv", index=False)
-            st.success("Attendance recorded successfully!")
-    else:
-        st.write("No students to mark attendance.")
+        student = st.selectbox(
+            "Student",
+            students_df["name"]
+        )
 
-# -------------------- Fees --------------------
-elif menu == "Fees":
-    st.title("Manage Fees")
-    
-    if not students_df.empty:
-        student_name = st.selectbox("Select Student", students_df['Name'].tolist())
-        month = st.selectbox("Month", pd.date_range('2026-01-01', periods=12, freq='M').strftime('%B'))
-        amount = st.number_input("Fee Amount", min_value=0)
-        
-        if st.button("Submit Fee"):
-            student_id = students_df[students_df['Name']==student_name]['StudentID'].values[0]
-            # Overwrite if exists
-            fees_df = fees_df[~((fees_df['StudentID']==student_id) & (fees_df['Month']==month))]
-            fees_df = pd.concat([fees_df, pd.DataFrame({'StudentID':[student_id],'Month':[month],'Amount':[amount]})])
-            fees_df.to_csv("fees.csv", index=False)
-            st.success("Fee recorded successfully!")
-        
-        st.subheader("Monthly Fees")
-        st.dataframe(fees_df.merge(students_df[['StudentID','Name']], on='StudentID')[['Name','Month','Amount']])
-    else:
-        st.write("No students available.")
+        data = students_df[
+            students_df["name"] == student
+        ].iloc[0]
 
-# -------------------- Parent Portal --------------------
-elif menu == "Parent Portal":
-    st.title("Parent Portal")
-    
-    parent_ids = students_df['ParentID'].unique()
-    if len(parent_ids)==0:
-        st.write("No parents available.")
-    else:
-        selected_parent = st.selectbox("Select Parent", parent_ids)
-        children = students_df[students_df['ParentID']==selected_parent]
-        child_name = st.selectbox("Select Child", children['Name'])
-        
-        st.subheader(f"Attendance for {child_name}")
-        student_id = children[children['Name']==child_name]['StudentID'].values[0]
-        student_attendance = attendance_df[attendance_df['StudentID']==student_id]
-        
-        if not student_attendance.empty:
-            present_count = len(student_attendance[student_attendance['Status']=="Present"])
-            total_count = len(student_attendance)
-            percentage = (present_count/total_count*100) if total_count>0 else 0
-            st.write(f"**Attendance Percentage:** {percentage:.2f}%")
-            st.dataframe(student_attendance[['Date','Status']])
+        student_id = str(data["id"])
+
+        st.info(
+            f"Standard: {data['standard']} | Batch: {data['batch']}"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            month = st.text_input(
+                "Fee Month",
+                datetime.now().strftime("%b %Y")
+            )
+
+        with col2:
+            amount = st.number_input(
+                "Amount",
+                min_value=0
+            )
+
+        with col3:
+            method = st.selectbox(
+                "Payment Method",
+                ["Cash","UPI","Cheque"]
+            )
+
+        if st.button("Record / Update Payment"):
+
+            date_now = datetime.now().strftime("%Y-%m-%d")
+
+            # Remove previous entry for same student & month
+            fees_df = fees_df[
+                ~(
+                    (fees_df["student_id"].astype(str) == student_id) &
+                    (fees_df["month"] == month)
+                )
+            ]
+
+            # Add updated entry
+            new_fee = pd.DataFrame(
+                [[date_now, student_id, amount, month, method]],
+                columns=["date","student_id","amount","month","method"]
+            )
+
+            fees_df = pd.concat(
+                [fees_df, new_fee],
+                ignore_index=True
+            )
+
+            fees_df.to_csv(FILES["fees"], index=False)
+
+            st.success(f"Fee for {student} ({month}) recorded/updated!")
+
+        # -------- SHOW CURRENT FEES --------
+
+        st.subheader("Fee Records")
+
+        if fees_df.empty:
+
+            st.info("No fee records yet.")
+
         else:
-            st.write("No attendance data available.")
-        
-        st.subheader(f"Fees for {child_name}")
-        child_fees = fees_df[fees_df['StudentID']==student_id]
-        st.dataframe(child_fees[['Month','Amount']])
 
-# -------------------- Announcements --------------------
-elif menu == "Announcements":
-    st.title("Announcements")
-    
-    if st.checkbox("Admin Mode (Add Announcement)"):
-        new_announcement = st.text_area("Announcement Text")
-        if st.button("Add Announcement"):
-            announcements_df = pd.concat([announcements_df, pd.DataFrame({'Date':[str(datetime.today().date())],'Announcement':[new_announcement]})])
-            announcements_df.to_csv("announcements.csv", index=False)
-            st.success("Announcement added!")
-    
-    st.subheader("All Announcements")
-    if not announcements_df.empty:
-        st.dataframe(announcements_df.sort_values('Date', ascending=False))
-    else:
-        st.write("No announcements yet.")
+            fees_display = fees_df.copy()
+
+            # Map student names
+            fees_display = fees_display.merge(
+                students_df[["id","name"]],
+                left_on="student_id",
+                right_on="id",
+                how="left"
+            )
+
+            fees_display = fees_display.rename(columns={
+                "name":"Student Name",
+                "date":"Payment Date",
+                "month":"Fee Month",
+                "amount":"Amount",
+                "method":"Payment Method"
+            })
+
+            fees_display = fees_display[
+                ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
+            ]
+
+            st.dataframe(
+                fees_display,
+                use_container_width=True
+            )
