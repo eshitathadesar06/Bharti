@@ -424,25 +424,27 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    # Get all children with this phone number
+    # Get all students linked to this phone number
     children = students_df[
-        students_df["phone"] == phone
+        students_df["phone"].astype(str) == str(phone)
     ]
 
     if children.empty:
 
-        st.warning("Student not found")
+        st.warning("No students found for this phone number")
 
     else:
 
-        # Parent selects child
-        child_name = st.selectbox(
+        # Always show student selection dropdown
+        child_names = children["name"].tolist()
+
+        selected_child = st.selectbox(
             "Select Student",
-            children["name"]
+            child_names
         )
 
         child = children[
-            children["name"] == child_name
+            children["name"] == selected_child
         ].iloc[0]
 
         st.subheader(child["name"])
@@ -450,7 +452,7 @@ elif page == "Parent View":
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-        # ---------------- FEE HISTORY ----------------
+        # -------- FEE HISTORY --------
 
         st.subheader("Fee History")
 
