@@ -21,30 +21,39 @@ if "announcements" not in st.session_state:
 if "seen_announcements" not in st.session_state:
     st.session_state.seen_announcements = set()  # indexes of announcements already seen by parent
 
-# ---------------- TEACHER ANNOUNCEMENTS PAGE ----------------
-if st.session_state.role == "teacher" and page == "Announcements":
-    st.title("📢 Announcements")
+# ---------------- TEACHER PANEL ----------------
+if st.session_state.role == "teacher":
+    # Define page selection for teacher
+    page = st.sidebar.radio(
+        "Navigation",
+        ["Dashboard","Student Management","Attendance","Fees","Announcements"]
+    )
 
-    # Form to post new announcement
-    with st.form("add_announcement"):
-        text = st.text_area("Write Announcement", "")
-        submit = st.form_submit_button("Post Announcement")
-        if submit and text.strip():
-            date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-            st.session_state.announcements.append({"date": date_now, "text": text.strip()})
-            st.success("Announcement posted!")
-            st.rerun()
+    if page == "Announcements":
+        st.title("📢 Announcements")
 
-    # Display all announcements (newest first)
-    st.subheader("All Announcements")
-    if not st.session_state.announcements:
-        st.info("No announcements yet.")
-    else:
-        for ann in reversed(st.session_state.announcements):
-            st.markdown(f"**{ann['date']}** — {ann['text']}")
+        # Form to post new announcement
+        with st.form("add_announcement"):
+            text = st.text_area("Write Announcement", "")
+            submit = st.form_submit_button("Post Announcement")
+            if submit and text.strip():
+                date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
+                st.session_state.announcements.append({"date": date_now, "text": text.strip()})
+                st.success("Announcement posted!")
+                st.rerun()
 
-# ---------------- PARENT ANNOUNCEMENTS ----------------
-if st.session_state.role == "parent":
+        # Display all announcements (newest first)
+        st.subheader("All Announcements")
+        if not st.session_state.announcements:
+            st.info("No announcements yet.")
+        else:
+            for ann in reversed(st.session_state.announcements):
+                st.markdown(f"**{ann['date']}** — {ann['text']}")
+
+# ---------------- PARENT PANEL ----------------
+elif st.session_state.role == "parent":
+    page = "Parent View"
+
     # Show popup for new announcements
     new_announcements = []
     for idx, ann in enumerate(st.session_state.announcements):
@@ -52,9 +61,9 @@ if st.session_state.role == "parent":
             new_announcements.append((idx, ann))
             st.session_state.seen_announcements.add(idx)
 
-    # Streamlit popup notification
+    # Streamlit popup notification for new announcements
     for idx, ann in new_announcements:
-        st.toast(f"New Announcement: {ann['text']}")  # Requires Streamlit >=1.26
+        st.toast(f"New Announcement: {ann['text']}")  # Streamlit >=1.26 required
 
     # Display all announcements
     st.subheader("📢 Announcements from School")
