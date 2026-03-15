@@ -264,18 +264,6 @@ elif page == "Attendance":
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
 
-            st.subheader("Delete Attendance Record")
-            student_names = batch_students["name"].tolist()
-            student_delete = st.selectbox("Select Student to Delete Record", student_names, key="delete_att_select")
-            if st.button("Delete Attendance Record"):
-                sid = str(batch_students[batch_students["name"]==student_delete]["id"].iloc[0])
-                attendance_df = attendance_df[
-                    ~((attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid))
-                ]
-                attendance_df.to_csv(FILES["attendance"], index=False)
-                st.success(f"Attendance record deleted for {student_delete}")
-                st.rerun()
-
             st.subheader("Attendance Percentage")
             percentages = []
             for _, s in batch_students.iterrows():
@@ -321,7 +309,6 @@ elif page == "Fees":
             fees_df.to_csv(FILES["fees"], index=False)
             st.success(f"Fee for {student} ({month}) recorded/updated!")
 
-        # -------- SHOW CURRENT FEES --------
         st.subheader("Fee Records")
         if fees_df.empty:
             st.info("No fee records yet.")
