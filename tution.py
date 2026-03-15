@@ -62,9 +62,9 @@ students_df["phone"] = (
 
 # ---------------- PAGE ----------------
 
-st.set_page_config(page_title="Tuition Manager", layout="wide")
+st.set_page_config(page_title="Bharti Tution", layout="wide")
 
-st.sidebar.title("📚 Tuition Manager")
+st.sidebar.title("📚 Bharti Tution")
 
 # ---------------- LOGIN ----------------
 
