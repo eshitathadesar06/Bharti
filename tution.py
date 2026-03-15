@@ -364,35 +364,91 @@ elif page == "Attendance":
                     st.success(f"{name} marked {status}")
 
 # ---------------- FEES ----------------
-if st.button("Record Payment"):
+# ---------------- FEES ----------------
 
-    student_id = str(data["id"])
+elif page == "Fees":
 
-    # Remove existing fee entry for same student and month
-    fees_df = fees_df[
-        ~(
-            (fees_df["student_id"].astype(str) == student_id) &
-            (fees_df["month"] == month)
-        )
-    ]
+    st.title("💰 Fee Collection")
 
-    # Add updated fee entry
-    new = pd.DataFrame(
-        [[
-            datetime.now().strftime("%Y-%m-%d"),
-            student_id,
-            amount,
-            month,
-            method
-        ]],
-        columns=fees_df.columns
-    )
+    if students_df.empty:
+        st.warning("Add students first")
+    else:
+        # ---------------- STUDENT SELECTION ----------------
+        # Keep selectbox simple but include ID to avoid duplicate names
+        student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
+        student_selection = st.selectbox("Student", student_options)
+        student_id = int(student_selection.split("(")[-1].replace(")",""))
 
-    fees_df = pd.concat([fees_df,new], ignore_index=True)
+        data = students_df[students_df["id"] == student_id].iloc[0]
 
-    fees_df.to_csv(FILES["fees"], index=False)
+        st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
 
-    st.success("Fee recorded / updated successfully")
+        # ---------------- INPUTS ----------------
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            # Keep text input but normalize month format
+            month_input = st.text_input(
+                "Fee Month",
+                datetime.now().strftime("%b %Y")
+            )
+            # Ensure consistent format (e.g., "Mar 2026")
+            month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y") \
+                if pd.to_datetime(month_input, errors='coerce') is not pd.NaT else month_input
+
+        with col2:
+            amount = st.number_input("Amount", min_value=0)
+
+        with col3:
+            method = st.selectbox("Payment Method", ["Cash", "UPI", "Cheque"])
+
+        # ---------------- RECORD / UPDATE ----------------
+        if st.button("Record / Update Payment"):
+            date_now = datetime.now().strftime("%Y-%m-%d")
+
+            # Remove previous entry for same student & month
+            fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
+
+            # Add updated entry
+            new_fee = pd.DataFrame(
+                [[date_now, student_id, amount, month, method]],
+                columns=["date", "student_id", "amount", "month", "method"]
+            )
+
+            fees_df = pd.concat([fees_df, new_fee], ignore_index=True)
+            fees_df.to_csv(FILES["fees"], index=False)
+
+            st.success(f"Fee for {data['name']} ({month}) recorded/updated!")
+
+        # ---------------- SHOW CURRENT FEES ----------------
+        st.subheader("Fee Records")
+
+        if fees_df.empty:
+            st.info("No fee records yet.")
+        else:
+            fees_display = fees_df.copy()
+
+            # Merge student names
+            fees_display = fees_display.merge(
+                students_df[["id", "name"]],
+                left_on="student_id",
+                right_on="id",
+                how="left"
+            )
+
+            fees_display = fees_display.rename(columns={
+                "name": "Student Name",
+                "date": "Payment Date",
+                "month": "Fee Month",
+                "amount": "Amount",
+                "method": "Payment Method"
+            })
+
+            fees_display = fees_display[
+                ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
+            ]
+
+            st.dataframe(fees_display, use_container_width=True)
 
 
 # ---------------- PARENT VIEW ----------------
