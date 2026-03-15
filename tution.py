@@ -214,7 +214,6 @@ elif page == "Student Management":
 
 
 # ---------------- ATTENDANCE ----------------
-
 elif page == "Attendance":
 
     st.title("📅 Attendance")
@@ -235,6 +234,10 @@ elif page == "Attendance":
 
     else:
         st.subheader("Mark Attendance")
+
+        # Create a dict to hold each student's status
+        attendance_status = {}
+
         for _, row in batch_students.iterrows():
             sid = row["id"]
             name = row["name"]
@@ -245,22 +248,27 @@ elif page == "Attendance":
             ]
             default_status = "Present" if not current.empty and current.iloc[0]["status"]=="Present" else "Absent"
 
-            # Use radio button to mark status
-            status = st.radio(f"{name} ({row['standard']})", ["Present", "Absent"], index=0 if default_status=="Present" else 1, key=f"att_{sid}")
+            # Radio button per student
+            attendance_status[sid] = st.radio(
+                f"{name} ({row['standard']})",
+                ["Present", "Absent"],
+                index=0 if default_status=="Present" else 1,
+                key=f"att_{sid}"
+            )
 
-            # Save attendance immediately when changed
-            if st.button(f"Save {name}", key=f"save_{sid}"):
+        # Single Save button for all students
+        if st.button("Save Attendance"):
+            for sid, status in attendance_status.items():
                 # Remove previous entry
                 attendance_df = attendance_df[
                     ~((attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid))
                 ]
                 # Add new entry
                 new = pd.DataFrame([[date_str, sid, status]], columns=["date","student_id","status"])
-                attendance_df = pd.concat([attendance_df,new], ignore_index=True)
-                attendance_df.to_csv(FILES["attendance"], index=False)
-                st.success(f"Attendance for {name} saved!")
-                st.experimental_rerun()
+                attendance_df = pd.concat([attendance_df, new], ignore_index=True)
 
+            attendance_df.to_csv(FILES["attendance"], index=False)
+            st.success("Attendance saved successfully!")
 
 # ---------------- FEES ----------------
 
