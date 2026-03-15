@@ -364,8 +364,6 @@ elif page == "Attendance":
 
 # ---------------- FEES ----------------
 
-# ---------------- FEES ----------------
-
 elif page == "Fees":
 
     st.title("💰 Fee Collection")
@@ -374,14 +372,10 @@ elif page == "Fees":
         st.warning("Add students first")
     else:
         # ---------------- STUDENT SELECTION ----------------
-        # Display name + ID to avoid duplicates
         student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         student_selection = st.selectbox("Student", student_options)
 
-        # Keep student_id as string to match students_df
         student_id = student_selection.split("(")[-1].replace(")", "")
-
-        # Fetch student safely
         selected_student = students_df[students_df["id"].astype(str) == student_id]
         if selected_student.empty:
             st.error("Selected student not found!")
@@ -394,15 +388,11 @@ elif page == "Fees":
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            month_input = st.text_input(
-                "Fee Month",
-                datetime.now().strftime("%b %Y")
-            )
-            # Normalize month format
+            month_input = st.text_input("Fee Month", datetime.now().strftime("%b %Y"))
             try:
                 month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y")
             except:
-                month = month_input  # fallback if parsing fails
+                month = month_input
 
         with col2:
             amount = st.number_input("Amount", min_value=0)
@@ -413,22 +403,15 @@ elif page == "Fees":
         # ---------------- RECORD / UPDATE ----------------
         if st.button("Record / Update Payment"):
             date_now = datetime.now().strftime("%Y-%m-%d")
-
-            # Ensure student_id column is string
             fees_df["student_id"] = fees_df["student_id"].astype(str)
-
-            # Remove previous entry for same student & month
             fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
 
-            # Add new fee
             new_fee = pd.DataFrame(
                 [[date_now, student_id, amount, month, method]],
                 columns=["date", "student_id", "amount", "month", "method"]
             )
-
             fees_df = pd.concat([fees_df, new_fee], ignore_index=True)
             fees_df.to_csv(FILES["fees"], index=False)
-
             st.success(f"Fee for {data['name']} ({month}) recorded/updated!")
 
         # ---------------- SHOW CURRENT FEES ----------------
@@ -437,42 +420,51 @@ elif page == "Fees":
         if fees_df.empty:
             st.info("No fee records yet.")
         else:
-            fees_display = fees_df.copy()
-            fees_display["student_id"] = fees_display["student_id"].astype(str)
-
-            # Merge student names safely
-            fees_display = fees_display.merge(
+            fees_df["student_id"] = fees_df["student_id"].astype(str)
+            fees_display = fees_df.merge(
                 students_df[["id", "name"]].astype(str),
                 left_on="student_id",
                 right_on="id",
                 how="left"
-            )
-
-            fees_display = fees_display.rename(columns={
+            ).rename(columns={
                 "name": "Student Name",
                 "date": "Payment Date",
                 "month": "Fee Month",
                 "amount": "Amount",
                 "method": "Payment Method"
-            })
-
-            fees_display = fees_display[
+            })[
                 ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
             ]
 
-            st.dataframe(fees_display, use_container_width=True)
+            # ---------------- DELETE FEE BUTTON ----------------
+            st.subheader("Delete Fee Record")
 
-            # ---------------- DELETE FEE RECORD ----------------
-            st.subheader("Delete Previous Fee Record")
-            fee_months = fees_display["Fee Month"].unique().tolist()
-            month_to_delete = st.selectbox("Select Fee Month to Delete", ["Select"] + fee_months)
+            # Filter fees for selected student
+            student_fees = fees_display[fees_display["Student Name"] == data["name"]]
+            if not student_fees.empty:
+                month_to_delete = st.selectbox("Select Fee Month to Delete", ["Select"] + student_fees["Fee Month"].unique().tolist())
+                if month_to_delete != "Select":
+                    if st.button("Delete Fee Record"):
+                        # Delete the record from fees_df
+                        fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month_to_delete))]
+                        fees_df.to_csv(FILES["fees"], index=False)
+                        st.success(f"Deleted fee for {data['name']} ({month_to_delete})")
 
-            if month_to_delete != "Select":
-                if st.button("Delete Fee Record"):
-                    fees_df = fees_df[~((fees_df["student_id"].astype(str) == student_id) & (fees_df["month"] == month_to_delete))]
-                    fees_df.to_csv(FILES["fees"], index=False)
-                    st.success(f"Fee record for {data['name']} ({month_to_delete}) deleted successfully!")
-                    st.experimental_rerun()  # Refresh page to show updated table
+            # Display updated table immediately
+            st.dataframe(fees_df.merge(
+                students_df[["id", "name"]].astype(str),
+                left_on="student_id",
+                right_on="id",
+                how="left"
+            ).rename(columns={
+                "name": "Student Name",
+                "date": "Payment Date",
+                "month": "Fee Month",
+                "amount": "Amount",
+                "method": "Payment Method"
+            })[
+                ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
+            ], use_container_width=True)
 
 # ---------------- PARENT VIEW ----------------
 
