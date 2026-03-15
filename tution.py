@@ -364,6 +364,8 @@ elif page == "Attendance":
 
 # ---------------- FEES ----------------
 
+# ---------------- FEES ----------------
+
 elif page == "Fees":
 
     st.title("💰 Fee Collection")
@@ -460,7 +462,17 @@ elif page == "Fees":
 
             st.dataframe(fees_display, use_container_width=True)
 
-# ---------------- PARENT VIEW ----------------
+            # ---------------- DELETE FEE RECORD ----------------
+            st.subheader("Delete Previous Fee Record")
+            fee_months = fees_display["Fee Month"].unique().tolist()
+            month_to_delete = st.selectbox("Select Fee Month to Delete", ["Select"] + fee_months)
+
+            if month_to_delete != "Select":
+                if st.button("Delete Fee Record"):
+                    fees_df = fees_df[~((fees_df["student_id"].astype(str) == student_id) & (fees_df["month"] == month_to_delete))]
+                    fees_df.to_csv(FILES["fees"], index=False)
+                    st.success(f"Fee record for {data['name']} ({month_to_delete}) deleted successfully!")
+                    st.experimental_rerun()  # Refresh page to show updated table
 
 # ---------------- PARENT VIEW ----------------
 
