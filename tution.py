@@ -122,8 +122,8 @@ if page == "Announcements" and st.session_state.role == "teacher":
         message = st.text_area("Message")
         submit = st.form_submit_button("Post Announcement")
         if submit and title and message:
-            new_row = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %I:%M:%S %p"), title, message]],
-                                   columns=["date","title","message"])
+            new_row = pd.DataFrame[[datetime.now().strftime("%Y-%m-%d %I:%M:%S %p"), title, message]],
+        columns=["date","title","message"]
             announcements_df = pd.concat([announcements_df, new_row], ignore_index=True)
             announcements_df.to_csv(announcements_file, index=False)
             st.success("Announcement posted!")
