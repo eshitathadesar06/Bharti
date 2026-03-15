@@ -234,7 +234,7 @@ elif page == "Attendance":
                 percent = (present_days/total_days*100) if total_days>0 else 0
                 percentages.append([s["name"], percent])
             st.dataframe(pd.DataFrame(percentages, columns=["Student","Attendance %"]), use_container_width=True)
-
+            
 # ---------------- FEES ----------------
 elif page == "Fees":
     st.title("💰 Fee Collection")
@@ -254,7 +254,6 @@ elif page == "Fees":
             st.warning("No students found for this search")
         else:
             student = st.selectbox("Student", display_students["name"])
-            # Ensure student exists
             student_row = students_df[students_df["name"]==student]
             if student_row.empty:
                 st.error("Selected student does not exist!")
@@ -279,8 +278,8 @@ elif page == "Fees":
                     st.success(f"Fee for {student} ({month}) recorded/updated!")
                     st.rerun()
 
-        # Display Fees
-        display_fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="inner") # <-- only valid names
+        # Display Fees Table (only valid students)
+        display_fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="inner")
         if search:
             search_lower = search.lower()
             display_fees = display_fees[display_fees.apply(lambda x: search_lower in str(x["name"]).lower() or search_lower in str(x["month"]).lower(), axis=1)]
@@ -291,7 +290,7 @@ elif page == "Fees":
             display_fees = display_fees[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(display_fees, use_container_width=True)
 
-            # Delete Fee Record
+            # Delete Fee Record (only valid students)
             st.subheader("Delete Fee Record")
             student_names = display_fees["Student Name"].unique().tolist()
             if student_names:
@@ -305,7 +304,7 @@ elif page == "Fees":
                     fees_df.to_csv(FILES["fees"], index=False)
                     st.success(f"Fee record deleted for {del_student}, {del_month}")
                     st.rerun()
-
+                    
 # ---------------- PARENT VIEW ----------------
 elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
