@@ -355,17 +355,20 @@ elif page == "Fees":
     if students_df.empty:
         st.warning("Add students first")
     else:
-        student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
+
+        # Student dropdown only names
+        student_options = students_df["name"].tolist()
         student_selection = st.selectbox("Student", student_options)
 
-        student_id = student_selection.split("(")[-1].replace(")", "")
-        selected_student = students_df[students_df["id"].astype(str) == student_id]
+        selected_student = students_df[students_df["name"] == student_selection]
 
         if selected_student.empty:
             st.error("Selected student not found!")
             st.stop()
 
         data = selected_student.iloc[0]
+        student_id = str(data["id"])
+
         st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
 
         col1, col2, col3 = st.columns(3)
@@ -382,6 +385,8 @@ elif page == "Fees":
 
         with col3:
             method = st.selectbox("Payment Method", ["Cash", "UPI", "Cheque"])
+
+        # -------- RECORD PAYMENT --------
 
         if st.button("Record / Update Payment"):
 
@@ -406,6 +411,8 @@ elif page == "Fees":
             fees_df.to_csv(FILES["fees"], index=False)
 
             st.success(f"Fee for {data['name']} ({month}) recorded/updated!")
+
+        # -------- DELETE PAYMENT --------
 
         if st.button("Delete Fee Record"):
 
@@ -442,6 +449,7 @@ elif page == "Fees":
         if fees_df.empty:
             st.info("No fee records yet.")
         else:
+
             fees_df["student_id"] = fees_df["student_id"].astype(str)
 
             fees_display = fees_df.merge(
@@ -467,8 +475,9 @@ elif page == "Fees":
                 ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
             ]
 
-            st.dataframe(fees_display, use_container_width=True)
-
+            # Hide index column
+            st.dataframe(fees_display, use_container_width=True, hide_index=True)
+            
 # ---------------- PARENT VIEW ----------------
 
 elif page == "Parent View":
