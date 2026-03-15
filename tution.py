@@ -461,13 +461,13 @@ elif page == "Parent View":
         st.warning("No students found for this phone number")
 
     else:
-        # ---------------- STUDENT SELECTION ----------------
+
         # Show only student names
         child_options = children["name"].tolist()
 
         selected_child = st.selectbox("Select Student", child_options)
 
-        # Fetch student using name
+        # Fetch student
         child = children[children["name"] == selected_child].iloc[0]
 
         st.subheader(child["name"])
@@ -475,6 +475,7 @@ elif page == "Parent View":
         st.write("Batch:", child["batch"])
 
         # -------- FEE HISTORY --------
+
         st.subheader("Fee History")
 
         student_fees = fees_df[
@@ -482,9 +483,13 @@ elif page == "Parent View":
         ]
 
         if student_fees.empty:
+
             st.info("No fees recorded")
+
         else:
+
             fees_display = student_fees.copy()
+
             fees_display["Student Name"] = child["name"]
 
             fees_display = fees_display.rename(columns={
@@ -498,9 +503,10 @@ elif page == "Parent View":
                 ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
             ]
 
-            st.dataframe(fees_display, use_container_width=True)
+            st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
         # -------- ATTENDANCE --------
+
         st.subheader("Attendance Records")
 
         attendance_df["student_id"] = attendance_df["student_id"].astype(str)
@@ -510,15 +516,18 @@ elif page == "Parent View":
         ]
 
         if student_attendance.empty:
+
             st.info("No attendance records found for this student.")
 
         else:
 
-            # -------- MONTH FILTER --------
+            # Convert to datetime
             student_attendance["date"] = pd.to_datetime(
-                student_attendance["date"], errors="coerce"
+                student_attendance["date"],
+                errors="coerce"
             )
 
+            # Create Month column
             student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
 
             months = student_attendance["Month"].dropna().unique().tolist()
@@ -529,20 +538,44 @@ elif page == "Parent View":
             )
 
             if selected_month != "All Months":
+
                 student_attendance = student_attendance[
                     student_attendance["Month"] == selected_month
                 ]
 
+            # -------- FORMAT TABLE --------
+
             attendance_display = student_attendance.copy()
 
-            attendance_display = attendance_display[
-                ["date", "status"]
-            ].rename(columns={
-                "date": "Date",
-                "status": "Status"
-            })
+            # Format date like 14th March 2026
+            attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
+
+            attendance_display["Status"] = attendance_display["status"]
+
+            attendance_display = attendance_display[["Date","Status"]]
+
+            # -------- CALCULATE ATTENDANCE % --------
+
+            total_days = len(attendance_display)
+
+            present_days = len(
+                attendance_display[
+                    attendance_display["Status"] == "Present"
+                ]
+            )
+
+            if total_days > 0:
+                percentage = round((present_days / total_days) * 100, 2)
+            else:
+                percentage = 0
+
+            attendance_display["Attendance %"] = f"{percentage}%"
+
+            # Remove index numbers
+            attendance_display = attendance_display.reset_index(drop=True)
 
             st.dataframe(
-                attendance_display.sort_values("Date"),
-                use_container_width=True
+                attendance_display,
+                use_container_width=True,
+                hide_index=True
             )
