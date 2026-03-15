@@ -14,65 +14,6 @@ FILES = {
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# ---------------- ANNOUNCEMENTS ----------------
-# Initialize announcements in session state
-if "announcements" not in st.session_state:
-    st.session_state.announcements = []  # list of dicts: {"date":..., "text":...}
-if "seen_announcements" not in st.session_state:
-    st.session_state.seen_announcements = set()  # indexes of announcements already seen by parent
-
-# ---------- TEACHER PANEL ----------
-if st.session_state.get("role") == "teacher":
-    # Define page selection for teacher
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Dashboard","Student Management","Attendance","Fees","Announcements"]
-    )
-
-    if page == "Announcements":
-        st.title("📢 Announcements")
-
-        # Form to post new announcement
-        with st.form("add_announcement"):
-            text = st.text_area("Write Announcement", "")
-            submit = st.form_submit_button("Post Announcement")
-            if submit and text.strip():
-                date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                st.session_state.announcements.append({"date": date_now, "text": text.strip()})
-                st.success("Announcement posted!")
-                st.experimental_rerun()  # safer than st.rerun()
-
-        # Display all announcements (newest first)
-        st.subheader("All Announcements")
-        if not st.session_state.announcements:
-            st.info("No announcements yet.")
-        else:
-            for ann in reversed(st.session_state.announcements):
-                st.markdown(f"**{ann['date']}** — {ann['text']}")
-
-# ---------- PARENT PANEL ----------
-elif st.session_state.get("role") == "parent":
-    page = "Parent View"
-
-    # Show popup for new announcements
-    new_announcements = []
-    for idx, ann in enumerate(st.session_state.announcements):
-        if idx not in st.session_state.seen_announcements:
-            new_announcements.append((idx, ann))
-            st.session_state.seen_announcements.add(idx)
-
-    # Streamlit popup notification for new announcements (requires Streamlit >=1.26)
-    for idx, ann in new_announcements:
-        st.toast(f"New Announcement: {ann['text']}")
-
-    # Display all announcements
-    st.subheader("📢 Announcements from School")
-    if not st.session_state.announcements:
-        st.info("No announcements yet.")
-    else:
-        for ann in reversed(st.session_state.announcements):
-            st.markdown(f"**{ann['date']}** — {ann['text']}")            
-
 # ---------------- LOAD DATA ----------------
 def load_data(key, columns):
     path = FILES[key]
@@ -112,119 +53,77 @@ students_df["phone"] = (
 )
 
 # ---------------- PAGE ----------------
-st.set_page_config(page_title="Bharti's Tution", layout="wide")
-st.sidebar.title("📚 Bharti's Tution")
+st.set_page_config(page_title="Tuition Manager", layout="wide")
+st.sidebar.title("📚 Tuition Manager")
 
 # ---------------- LOGIN ----------------
 role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
 
 if "role" not in st.session_state:
     st.session_state.role = None
-    
-# ---------- SESSION STATE INIT ----------
-if "role" not in st.session_state:
-    st.session_state.role = None
-if "parent_phone" not in st.session_state:
-    st.session_state.parent_phone = None
-if "selected_child" not in st.session_state:
-    st.session_state.selected_child = None
-if "announcements" not in st.session_state:
-    st.session_state.announcements = []  # list of dicts {"date":..., "text":...}
-if "seen_announcements" not in st.session_state:
-    st.session_state.seen_announcements = set()  # indexes already seen by parent
 
-# ---------- ROLE SELECTION ----------
-role = st.sidebar.selectbox("Login As", ["Teacher", "Parent"])
-
-# ---------- TEACHER LOGIN ----------
-if role == "Teacher" and st.session_state.get("role") != "teacher":
+# -------- TEACHER LOGIN --------
+if role == "Teacher":
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
     if st.sidebar.button("Login"):
         if username == "admin" and password == "teacher123":
             st.session_state.role = "teacher"
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.sidebar.error("Invalid login")
 
-# ---------- PARENT LOGIN ----------
-elif role == "Parent" and st.session_state.get("role") != "parent":
+# -------- PARENT LOGIN --------
+elif role == "Parent":
     phone = st.sidebar.text_input("Enter Registered Phone Number")
     if st.sidebar.button("Login"):
-        phone_clean = str(phone).strip()
-        parent_children = students_df[students_df["phone"] == phone_clean]
-        if not parent_children.empty:
+        phone_clean = str(phone).replace(".0","").strip()
+        parent = students_df[students_df["phone"] == phone_clean]
+        if not parent.empty:
             st.session_state.role = "parent"
             st.session_state.parent_phone = phone_clean
-            st.session_state.selected_child = parent_children.iloc[0]["name"]
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.sidebar.error("Phone number not found")
 
-# ---------- TEACHER PANEL ----------
-if st.session_state.get("role") == "teacher":
+# Stop if not logged in
+if st.session_state.role is None:
+    st.title("Welcome to Tuition Manager")
+    st.info("Please login from sidebar")
+    st.stop()
+
+# ---------------- TEACHER PANEL ----------------
+if st.session_state.role == "teacher":
     page = st.sidebar.radio(
         "Navigation",
-        ["Dashboard","Student Management","Attendance","Fees","Announcements"],
-        key="teacher_nav"
+        ["Dashboard","Student Management","Attendance","Fees"]
     )
-    st.write(f"### Teacher Page: {page}")
 
-# ---------- PARENT PANEL ----------
-elif st.session_state.get("role") == "parent":
-    children = students_df[students_df["phone"] == st.session_state.get("parent_phone")]
-    if len(children) > 1:
-        st.session_state.selected_child = st.sidebar.selectbox(
-            "Select Child",
-            children["name"],
-            index=children["name"].tolist().index(st.session_state.get("selected_child"))
-        )
-    child = children[children["name"] == st.session_state.get("selected_child")].iloc[0]
-    st.write(f"### Viewing Child: {child['name']}")
-
-# ---------- ANNOUNCEMENTS ----------
-if st.session_state.get("role") == "teacher" and page == "Announcements":
-    st.title("📢 Announcements")
-
-    # Form to post new announcement
-    with st.form("add_announcement"):
-        text = st.text_area("Write Announcement", "")
-        submit = st.form_submit_button("Post Announcement")
-        if submit and text.strip():
-            date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-            st.session_state.announcements.append({"date": date_now, "text": text.strip()})
-            st.success("Announcement posted!")
-            st.experimental_rerun()
-
-    # Display all announcements (newest first)
-    st.subheader("All Announcements")
-    if not st.session_state.announcements:
-        st.info("No announcements yet.")
-    else:
-        for ann in reversed(st.session_state.announcements):
-            st.markdown(f"**{ann['date']}** — {ann['text']}")
-
-elif st.session_state.get("role") == "parent":
+# ---------------- PARENT PANEL ----------------
+elif st.session_state.role == "parent":
     page = "Parent View"
 
-    # Show popup for new announcements
-    new_announcements = []
-    for idx, ann in enumerate(st.session_state.announcements):
-        if idx not in st.session_state.seen_announcements:
-            new_announcements.append((idx, ann))
-            st.session_state.seen_announcements.add(idx)
+# ---------------- DASHBOARD ----------------
+if page == "Dashboard":
+    st.title("📊 Dashboard")
+    search = st.text_input("Search Student (Name/Standard/Batch)")
+    display_df = students_df.copy()
+    if search:
+        search_lower = search.lower()
+        display_df = display_df[
+            display_df.apply(lambda x: search_lower in str(x["name"]).lower() or 
+                                           search_lower in str(x["standard"]).lower() or 
+                                           search_lower in str(x["batch"]).lower(), axis=1)
+        ]
+    col1,col2,col3 = st.columns(3)
+    col1.metric("Total Students", len(display_df))
+    month = datetime.now().strftime("%Y-%m")
+    month_fees = fees_df[fees_df["date"].astype(str).str.startswith(month)]["amount"].astype(float).sum()
+    col2.metric("Fees This Month", f"₹{month_fees}")
+    col3.metric("Total Batches", display_df["batch"].nunique())
+    if not display_df.empty:
+        st.bar_chart(display_df["standard"].value_counts())
 
-    for idx, ann in new_announcements:
-        st.toast(f"New Announcement: {ann['text']}")  # Requires Streamlit >=1.26
-
-    # Display all announcements
-    st.subheader("📢 Announcements from School")
-    if not st.session_state.announcements:
-        st.info("No announcements yet.")
-    else:
-        for ann in reversed(st.session_state.announcements):
-            st.markdown(f"**{ann['date']}** — {ann['text']}")
-            
 # ---------------- STUDENT MANAGEMENT ----------------
 elif page == "Student Management":
     st.title("👨‍🎓 Student Management")
@@ -347,40 +246,33 @@ elif page == "Fees":
         if search:
             search_lower = search.lower()
             display_students = display_students[display_students.apply(
-                lambda x: search_lower in str(x["name"]).lower() or 
-                          search_lower in str(x["standard"]).lower() or 
-                          search_lower in str(x["batch"]).lower(), axis=1
+                lambda x: search_lower in str(x["name"]).lower() or search_lower in str(x["standard"]).lower() or search_lower in str(x["batch"]).lower(), axis=1
             )]
         if display_students.empty:
             st.warning("No students found for this search")
         else:
             student = st.selectbox("Student", display_students["name"])
-            student_row = students_df[students_df["name"]==student]
-            if student_row.empty:
-                st.error("Selected student does not exist!")
-            else:
-                student_id = str(student_row.iloc[0]["id"])
-                st.info(f"Standard: {student_row.iloc[0]['standard']} | Batch: {student_row.iloc[0]['batch']}")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    fee_date = st.date_input("Select Fee Date", datetime.now())
-                    month = fee_date.strftime("%b %Y")
-                with col2:
-                    amount = st.number_input("Amount", min_value=0)
-                with col3:
-                    method = st.selectbox("Payment Method", ["Cash","UPI","Cheque"])
-                if st.button("Record / Update Payment"):
-                    date_now = fee_date.strftime("%Y-%m-%d")
-                    # Remove previous entry for same student & month
-                    fees_df = fees_df[~((fees_df["student_id"].astype(str)==student_id) & (fees_df["month"]==month))]
-                    # Add new fee
-                    fees_df = pd.concat([fees_df, pd.DataFrame([[date_now, student_id, amount, month, method]], columns=["date","student_id","amount","month","method"])], ignore_index=True)
-                    fees_df.to_csv(FILES["fees"], index=False)
-                    st.success(f"Fee for {student} ({month}) recorded/updated!")
-                    st.rerun()
-
-        # Display Fees Table (only valid students)
-        display_fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="inner")
+            data = students_df[students_df["name"]==student].iloc[0]
+            student_id = str(data["id"])
+            st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                fee_date = st.date_input("Select Fee Date", datetime.now())
+                month = fee_date.strftime("%b %Y")
+            with col2:
+                amount = st.number_input("Amount", min_value=0)
+            with col3:
+                method = st.selectbox("Payment Method", ["Cash","UPI","Cheque"])
+            if st.button("Record / Update Payment"):
+                date_now = fee_date.strftime("%Y-%m-%d")
+                fees_df = fees_df[~((fees_df["student_id"].astype(str)==student_id) & (fees_df["month"]==month))]
+                fees_df = pd.concat([fees_df, pd.DataFrame([[date_now, student_id, amount, month, method]], columns=["date","student_id","amount","month","method"])], ignore_index=True)
+                fees_df.to_csv(FILES["fees"], index=False)
+                st.success(f"Fee for {student} ({month}) recorded/updated!")
+                st.rerun()
+        # Display Fees
+        display_fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="left")
+        display_fees["name"] = display_fees["name"].fillna("Unknown Student")
         if search:
             search_lower = search.lower()
             display_fees = display_fees[display_fees.apply(lambda x: search_lower in str(x["name"]).lower() or search_lower in str(x["month"]).lower(), axis=1)]
@@ -390,8 +282,7 @@ elif page == "Fees":
             display_fees = display_fees.rename(columns={"name":"Student Name","date":"Payment Date","month":"Fee Month","amount":"Amount","method":"Payment Method"})
             display_fees = display_fees[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(display_fees, use_container_width=True)
-
-            # Delete Fee Record (only valid students)
+            # Delete Fee Record
             st.subheader("Delete Fee Record")
             student_names = display_fees["Student Name"].unique().tolist()
             if student_names:
@@ -400,59 +291,34 @@ elif page == "Fees":
                 fee_months = student_fees["Fee Month"].tolist()
                 del_month = st.selectbox("Select Month to Delete", fee_months, key="del_fee_month")
                 if st.button("Delete Fee Record"):
-                    del_sid = str(students_df[students_df["name"]==del_student]["id"].iloc[0])
-                    fees_df = fees_df[~((fees_df["student_id"]==del_sid) & (fees_df["month"]==del_month))]
-                    fees_df.to_csv(FILES["fees"], index=False)
-                    st.success(f"Fee record deleted for {del_student}, {del_month}")
-                    st.rerun()
-
+                    del_sid = str(students_df[students_df["name"]==del_student]["id"].iloc[0]) if del_student!="Unknown Student" else None
+                    if del_sid:
+                        fees_df = fees_df[~((fees_df["student_id"]==del_sid) & (fees_df["month"]==del_month))]
+                        fees_df.to_csv(FILES["fees"], index=False)
+                        st.success(f"Fee record deleted for {del_student}, {del_month}")
+                        st.rerun()
 
 # ---------------- PARENT VIEW ----------------
 elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
-
     phone = st.session_state.parent_phone
-
-    children = students_df[students_df["phone"] == phone]
-
-    if children.empty:
-        st.warning("No students found for this phone number")
+    child = students_df[students_df["phone"]==phone]
+    if child.empty:
+        st.warning("Student not found")
     else:
-        # Select child if multiple
-        if len(children) > 1:
-            child_name = st.selectbox("Select Child", children["name"])
-            child = children[children["name"] == child_name].iloc[0]
-        else:
-            child = children.iloc[0]
-
+        child = child.iloc[0]
         st.subheader(child["name"])
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
-
-        # ---------------- ATTENDANCE PERCENTAGE ----------------
-        child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
-        if not child_attendance.empty:
-            total_days = len(child_attendance)
-            present_days = len(child_attendance[child_attendance["status"]=="Present"])
-            percent = (present_days/total_days)*100 if total_days > 0 else 0
-            st.write(f"Attendance: {percent:.2f}% ({present_days}/{total_days} days)")
-        else:
-            st.write("Attendance: No records yet")
-
-        # ---------------- FEES ----------------
         st.subheader("Fee History")
-
-        # Show fees with student names
-        fees = fees_df.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="inner")
-        fees = fees[fees["name"] == child["name"]]  # only this child
+        fees = fees_df[fees_df["student_id"]==str(child["id"])]
         if fees.empty:
             st.info("No fees recorded")
         else:
-            fees_display = fees.rename(columns={
-                "name": "Student Name",
-                "date": "Payment Date",
-                "month": "Fee Month",
-                "amount": "Amount",
-                "method": "Payment Method"
-            })[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
-            st.dataframe(fees_display, use_container_width=True)
+            st.dataframe(fees)
+        st.subheader("Attendance Percentage")
+        student_att = attendance_df[attendance_df["student_id"]==str(child["id"])]
+        total_days = len(student_att)
+        present_days = len(student_att[student_att["status"]=="Present"])
+        percent = (present_days/total_days*100) if total_days>0 else 0
+        st.write(f"{percent:.2f}%")
