@@ -361,7 +361,6 @@ elif page == "Attendance":
 
                     st.success(f"{name} marked {status}")
 
-# ---------------- FEES ----------------
 
 # ---------------- FEES ----------------
 
@@ -373,40 +372,35 @@ elif page == "Fees":
         st.warning("Add students first")
     else:
         # ---------------- STUDENT SELECTION ----------------
-        # Include ID in display to avoid duplicate names
+        # Display name + ID to avoid duplicates
         student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         student_selection = st.selectbox("Student", student_options)
 
-        # Ensure type matches DataFrame
-        try:
-            student_id = int(student_selection.split("(")[-1].replace(")",""))
-        except:
-            st.error("Invalid student selection!")
-            st.stop()
+        # Keep student_id as string to match students_df
+        student_id = student_selection.split("(")[-1].replace(")", "")
 
-        # Fetch student data safely
-        selected_student = students_df[students_df["id"] == student_id]
+        # Fetch student safely
+        selected_student = students_df[students_df["id"].astype(str) == student_id]
         if selected_student.empty:
             st.error("Selected student not found!")
             st.stop()
 
         data = selected_student.iloc[0]
-
         st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
 
         # ---------------- INPUTS ----------------
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            # Month input (keep as text but normalize)
             month_input = st.text_input(
                 "Fee Month",
                 datetime.now().strftime("%b %Y")
             )
+            # Normalize month format
             try:
                 month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y")
             except:
-                month = month_input  # fallback
+                month = month_input  # fallback if parsing fails
 
         with col2:
             amount = st.number_input("Amount", min_value=0)
@@ -418,10 +412,13 @@ elif page == "Fees":
         if st.button("Record / Update Payment"):
             date_now = datetime.now().strftime("%Y-%m-%d")
 
+            # Ensure student_id column is string
+            fees_df["student_id"] = fees_df["student_id"].astype(str)
+
             # Remove previous entry for same student & month
             fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
 
-            # Add new entry
+            # Add new fee
             new_fee = pd.DataFrame(
                 [[date_now, student_id, amount, month, method]],
                 columns=["date", "student_id", "amount", "month", "method"]
@@ -439,10 +436,11 @@ elif page == "Fees":
             st.info("No fee records yet.")
         else:
             fees_display = fees_df.copy()
+            fees_display["student_id"] = fees_display["student_id"].astype(str)
 
-            # Merge student names
+            # Merge student names safely
             fees_display = fees_display.merge(
-                students_df[["id", "name"]],
+                students_df[["id", "name"]].astype(str),
                 left_on="student_id",
                 right_on="id",
                 how="left"
