@@ -6,7 +6,6 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    # Get all students linked to this phone number
     children = students_df[
         students_df["phone"].astype(str) == str(phone)
     ]
@@ -16,19 +15,17 @@ elif page == "Parent View":
 
     else:
 
-        # Show only student names
         child_options = children["name"].tolist()
 
         selected_child = st.selectbox("Select Student", child_options)
 
-        # Fetch student
         child = children[children["name"] == selected_child].iloc[0]
 
         st.subheader(child["name"])
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-        # ---------------- FEE HISTORY ----------------
+        # -------- FEE HISTORY --------
 
         st.subheader("Fee History")
 
@@ -37,7 +34,6 @@ elif page == "Parent View":
         ]
 
         if student_fees.empty:
-
             st.info("No fees recorded")
 
         else:
@@ -59,41 +55,7 @@ elif page == "Parent View":
 
             st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
-        # ---------------- MONTHLY FEE STATUS ----------------
-
-        st.subheader("Monthly Fee Status")
-
-        months = pd.date_range(
-            start=f"{datetime.now().year}-01-01",
-            end=f"{datetime.now().year}-12-01",
-            freq="MS"
-        ).strftime("%b %Y").tolist()
-
-        student_fee_months = student_fees["month"].tolist() if not student_fees.empty else []
-
-        status_data = []
-
-        for m in months:
-
-            if m in student_fee_months:
-                status = "Paid ✅"
-            else:
-                status = "Pending ❌"
-
-            status_data.append([m, status])
-
-        fee_status_df = pd.DataFrame(
-            status_data,
-            columns=["Month","Status"]
-        )
-
-        st.dataframe(
-            fee_status_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
-        # ---------------- ATTENDANCE ----------------
+        # -------- ATTENDANCE --------
 
         st.subheader("Attendance Records")
 
@@ -109,13 +71,13 @@ elif page == "Parent View":
 
         else:
 
-            # Convert to datetime
+            student_attendance = student_attendance.copy()
+
             student_attendance["date"] = pd.to_datetime(
                 student_attendance["date"],
                 errors="coerce"
             )
 
-            # Create Month column
             student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
 
             months = student_attendance["Month"].dropna().unique().tolist()
@@ -131,7 +93,6 @@ elif page == "Parent View":
                     student_attendance["Month"] == selected_month
                 ]
 
-            # Format table
             attendance_display = student_attendance.copy()
 
             attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
@@ -140,7 +101,6 @@ elif page == "Parent View":
 
             attendance_display = attendance_display[["Date","Status"]]
 
-            # Attendance percentage
             total_days = len(attendance_display)
 
             present_days = len(
@@ -155,8 +115,6 @@ elif page == "Parent View":
                 percentage = 0
 
             st.metric("Attendance Percentage", f"{percentage}%")
-
-            attendance_display = attendance_display.reset_index(drop=True)
 
             st.dataframe(
                 attendance_display,
