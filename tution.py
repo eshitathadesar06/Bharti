@@ -401,7 +401,7 @@ elif page == "Parent View":
         st.subheader("Fee History")
 
         fees = fees_df[
-            fees_df["student_id"] == child["id"]
+            fees_df["student_id"].astype(str) == str(child["id"])
         ]
 
         if fees.empty:
@@ -410,4 +410,13 @@ elif page == "Parent View":
 
         else:
 
-            st.dataframe(fees)
+            # Add student name column
+            fees_display = fees.copy()
+            fees_display["Student Name"] = child["name"]
+
+            # Reorder columns
+            fees_display = fees_display[
+                ["Student Name","date","amount","month","method"]
+            ]
+
+            st.dataframe(fees_display, use_container_width=True)
