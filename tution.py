@@ -18,6 +18,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 # ---------------- LOAD DATA ----------------
 
 def load_data(key, columns):
+
     path = FILES[key]
 
     if not os.path.exists(path):
@@ -26,7 +27,7 @@ def load_data(key, columns):
         return df
 
     try:
-    return pd.read_csv(path, dtype=str)
+        return pd.read_csv(path, dtype=str)
     except:
         df = pd.DataFrame(columns=columns)
         df.to_csv(path, index=False)
@@ -76,27 +77,36 @@ if role == "Teacher":
         else:
             st.sidebar.error("Invalid login")
 
+
 elif role == "Parent":
 
     phone = st.sidebar.text_input("Enter Registered Phone Number")
 
     if st.sidebar.button("Login"):
 
-parent = students_df[students_df["phone"].astype(str) == str(phone)]
+        parent = students_df[
+            students_df["phone"].astype(str) == str(phone)
+        ]
 
         if not parent.empty:
+
             st.session_state.role = "parent"
-            st.session_state.parent_phone = phone
+            st.session_state.parent_phone = str(phone)
+
             st.rerun()
 
         else:
             st.sidebar.error("Phone number not found")
 
+
 # Stop if not logged in
 if st.session_state.role is None:
+
     st.title("Welcome to Tuition Manager")
     st.info("Please login from sidebar")
+
     st.stop()
+
 
 # ---------------- TEACHER PANEL ----------------
 
@@ -128,13 +138,14 @@ if page == "Dashboard":
 
     month_fees = fees_df[
         fees_df["date"].astype(str).str.startswith(month)
-    ]["amount"].sum()
+    ]["amount"].astype(float).sum()
 
     col2.metric("Fees This Month", f"₹{month_fees}")
 
     col3.metric("Total Batches", students_df["batch"].nunique())
 
     if not students_df.empty:
+
         st.bar_chart(students_df["standard"].value_counts())
 
 
@@ -156,7 +167,7 @@ elif page == "Student Management":
 
             standard = st.selectbox(
                 "Standard",
-                ["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"]
+                ["Jr KG","Sr KG","1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th"]
             )
 
         with c2:
@@ -167,13 +178,14 @@ elif page == "Student Management":
             )
 
             parent = st.text_input("Parent Name")
+
             phone = st.text_input("Phone Number")
 
         submit = st.form_submit_button("Add Student")
 
         if submit and name:
 
-            new_id = 1 if students_df.empty else students_df["id"].max()+1
+            new_id = 1 if students_df.empty else int(students_df["id"].astype(int).max())+1
 
             new_row = pd.DataFrame(
                 [[new_id,name,standard,batch,parent,phone]],
@@ -188,9 +200,11 @@ elif page == "Student Management":
 
             st.rerun()
 
+
     st.subheader("Students List")
 
     st.dataframe(students_df, use_container_width=True)
+
 
     # -------- DELETE STUDENT --------
 
@@ -204,7 +218,9 @@ elif page == "Student Management":
 
         if st.button("Delete Student"):
 
-            students_df = students_df[students_df["name"] != selected]
+            students_df = students_df[
+                students_df["name"] != selected
+            ]
 
             students_df.to_csv(FILES["students"], index=False)
 
@@ -228,7 +244,9 @@ elif page == "Attendance":
 
     date_str = date.strftime("%Y-%m-%d")
 
-    batch_students = students_df[students_df["batch"] == batch]
+    batch_students = students_df[
+        students_df["batch"] == batch
+    ]
 
     if batch_students.empty:
 
@@ -296,13 +314,21 @@ elif page == "Fees":
             students_df["name"]
         )
 
-        data = students_df[students_df["name"]==student].iloc[0]
+        data = students_df[
+            students_df["name"]==student
+        ].iloc[0]
 
         amount = st.number_input("Amount", min_value=0)
 
-        method = st.selectbox("Method",["Cash","UPI"])
+        method = st.selectbox(
+            "Method",
+            ["Cash","UPI"]
+        )
 
-        month = st.text_input("Month", datetime.now().strftime("%b %Y"))
+        month = st.text_input(
+            "Month",
+            datetime.now().strftime("%b %Y")
+        )
 
         if st.button("Record Payment"):
 
@@ -332,7 +358,9 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    child = students_df[students_df["phone"]==phone]
+    child = students_df[
+        students_df["phone"].astype(str) == str(phone)
+    ]
 
     if child.empty:
 
@@ -349,7 +377,9 @@ elif page == "Parent View":
 
         st.subheader("Fee History")
 
-        fees = fees_df[fees_df["student_id"]==child["id"]]
+        fees = fees_df[
+            fees_df["student_id"] == child["id"]
+        ]
 
         if fees.empty:
 
