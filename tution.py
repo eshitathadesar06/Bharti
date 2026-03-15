@@ -148,13 +148,20 @@ if page == "Dashboard":
 
     col1.metric("Total Students", len(students_df))
 
-    month = datetime.now().strftime("%Y-%m")
+month = datetime.now().strftime("%Y-%m")
+
+if not students_df.empty:
+
+    valid_ids = students_df["id"].astype(str)
 
     month_fees = fees_df[
-        fees_df["date"].astype(str).str.startswith(month)
+        (fees_df["date"].astype(str).str.startswith(month)) &
+        (fees_df["student_id"].astype(str).isin(valid_ids))
     ]["amount"].astype(float).sum()
 
-    col2.metric("Fees This Month", f"₹{month_fees}")
+else:
+
+    month_fees = 0
 
     col3.metric("Total Batches", students_df["batch"].nunique())
 
