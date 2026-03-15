@@ -45,6 +45,14 @@ fees_df = load_data(
     ["date","student_id","amount","month","method"]
 )
 
+# ---------------- LOAD ANNOUNCEMENTS ----------------
+announcements_file = os.path.join(DATA_DIR, "announcements.csv")
+if not os.path.exists(announcements_file):
+    announcements_df = pd.DataFrame(columns=["date","title","message"])
+    announcements_df.to_csv(announcements_file, index=False)
+else:
+    announcements_df = pd.read_csv(announcements_file, dtype=str).fillna("")
+
 # ---------------- CLEAN PHONE NUMBERS ----------------
 students_df["phone"] = (
     students_df["phone"].astype(str)
@@ -98,6 +106,45 @@ if st.session_state.role == "teacher":
         "Navigation",
         ["Dashboard","Student Management","Attendance","Fees"]
     )
+
+if st.session_state.role == "teacher":
+    page = st.sidebar.radio(
+        "Navigation",
+        ["Dashboard","Student Management","Attendance","Fees","Announcements"]
+    )
+
+# ---------------- TEACHER ANNOUNCEMENTS ----------------
+if page == "Announcements" and st.session_state.role == "teacher":
+    st.title("📢 Announcements")
+
+    # Add Announcement
+    with st.form("add_announcement"):
+        st.subheader("Add New Announcement")
+        title = st.text_input("Title")
+        message = st.text_area("Message")
+        submit = st.form_submit_button("Post Announcement")
+        if submit and title and message:
+            new_row = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M:%S"), title, message]],
+                                   columns=["date","title","message"])
+            announcements_df = pd.concat([announcements_df, new_row], ignore_index=True)
+            announcements_df.to_csv(announcements_file, index=False)
+            st.success("Announcement posted!")
+            st.rerun()
+
+    # Display & Delete Announcements
+    if not announcements_df.empty:
+        st.subheader("Existing Announcements")
+        announcements_df = announcements_df.sort_values("date", ascending=False)
+        for i, row in announcements_df.iterrows():
+            st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
+            st.write(row["message"])
+            if st.button(f"Delete {i}"):
+                announcements_df = announcements_df.drop(i)
+                announcements_df.to_csv(announcements_file, index=False)
+                st.success("Announcement deleted")
+                st.rerun()
+    else:
+        st.info("No announcements yet.")
 
 # ---------------- PARENT PANEL ----------------
 elif st.session_state.role == "parent":
@@ -365,3 +412,12 @@ elif page == "Parent View":
                 "method": "Payment Method"
             })[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(fees_display, use_container_width=True)
+
+st.subheader("📢 Announcements")
+if not announcements_df.empty:
+    announcements_df = announcements_df.sort_values("date", ascending=False)
+    for _, row in announcements_df.iterrows():
+        st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
+        st.write(row["message"])
+else:
+    st.info("No announcements yet.")
