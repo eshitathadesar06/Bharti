@@ -115,7 +115,7 @@ elif st.session_state.role == "parent":
 if page == "Announcements" and st.session_state.role == "teacher":
     st.title("📢 Announcements")
 
-    # Add Announcement
+# Add Announcement
 with st.form("add_announcement"):
     st.subheader("Add New Announcement")
     title = st.text_input("Title")
@@ -130,7 +130,7 @@ with st.form("add_announcement"):
         announcements_df = pd.concat([announcements_df, new_row], ignore_index=True)
         announcements_df.to_csv(announcements_file, index=False)
         st.success("Announcement posted!")
-        st.rerun()
+        st.rerun()  # <- just this, no extra text or comments
 
     # Display & Delete Announcements
     if not announcements_df.empty:
