@@ -315,6 +315,8 @@ elif page == "Fees":
                     fees_df.to_csv(FILES["fees"], index=False)
                     st.success(f"Fee record deleted for {del_student}, {del_month}")
                     st.rerun()
+
+
 # ---------------- PARENT VIEW ----------------
 elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
@@ -326,7 +328,7 @@ elif page == "Parent View":
     if children.empty:
         st.warning("No students found for this phone number")
     else:
-        # If multiple children, let parent select
+        # Select child if multiple
         if len(children) > 1:
             child_name = st.selectbox("Select Child", children["name"])
             child = children[children["name"] == child_name].iloc[0]
@@ -337,6 +339,17 @@ elif page == "Parent View":
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
+        # ---------------- ATTENDANCE PERCENTAGE ----------------
+        child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
+        if not child_attendance.empty:
+            total_days = len(child_attendance)
+            present_days = len(child_attendance[child_attendance["status"]=="Present"])
+            percent = (present_days/total_days)*100 if total_days > 0 else 0
+            st.write(f"Attendance: {percent:.2f}% ({present_days}/{total_days} days)")
+        else:
+            st.write("Attendance: No records yet")
+
+        # ---------------- FEES ----------------
         st.subheader("Fee History")
 
         # Show fees with student names
