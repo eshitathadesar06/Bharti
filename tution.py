@@ -48,17 +48,13 @@ fees_df = load_data(
 # ---------------- LOAD ANNOUNCEMENTS ----------------
 announcements_file = os.path.join(DATA_DIR, "announcements.csv")
 if not os.path.exists(announcements_file):
-    announcements_df = pd.DataFrame(columns=["date","title","message"])
+    announcements_df = pd.DataFrame(columns=["date","title","message","standard"])
     announcements_df.to_csv(announcements_file, index=False)
 else:
     announcements_df = pd.read_csv(announcements_file, dtype=str).fillna("")
-
-# ---------------- CLEAN PHONE NUMBERS ----------------
-students_df["phone"] = (
-    students_df["phone"].astype(str)
-    .str.replace(".0","",regex=False)
-    .str.strip()
-)
+    # Ensure 'standard' exists
+    if "standard" not in announcements_df.columns:
+        announcements_df["standard"] = "All"
 
 # ---------------- PAGE ----------------
 st.set_page_config(page_title="Bharti's Tution", layout="wide")
