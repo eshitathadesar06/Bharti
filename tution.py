@@ -461,12 +461,13 @@ elif page == "Parent View":
 
     else:
 
-        child_options = children.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
-        selected_child = st.selectbox("Select Student", child_options)
+        # Show only student names in dropdown
+child_options = children["name"].tolist()
 
-        child_id = selected_child.split("(")[-1].replace(")", "")
+selected_child = st.selectbox("Select Student", child_options)
 
-        child = children[children["id"].astype(str) == child_id].iloc[0]
+# Get student data using name
+child = children[children["name"] == selected_child].iloc[0]
 
         st.subheader(child["name"])
         st.write("Standard:", child["standard"])
