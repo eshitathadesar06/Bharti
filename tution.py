@@ -601,77 +601,78 @@ elif page == "Parent View":
 
             st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
-        # -------- ATTENDANCE --------
+      # -------- ATTENDANCE --------
 
-        st.subheader("Attendance Records")
+st.subheader("Attendance Records")
 
-        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+attendance_df["student_id"] = attendance_df["student_id"].astype(str)
 
-        student_attendance = attendance_df[
-            attendance_df["student_id"] == str(child["id"])
+student_attendance = attendance_df[
+    attendance_df["student_id"] == str(child["id"])
+]
+
+if student_attendance.empty:
+
+    st.info("No attendance records found for this student.")
+
+else:
+
+    # Convert to datetime
+    student_attendance["date"] = pd.to_datetime(
+        student_attendance["date"],
+        errors="coerce"
+    )
+
+    # Create Month column
+    student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
+
+    months = student_attendance["Month"].dropna().unique().tolist()
+
+    selected_month = st.selectbox(
+        "Select Month",
+        ["All Months"] + months
+    )
+
+    if selected_month != "All Months":
+
+        student_attendance = student_attendance[
+            student_attendance["Month"] == selected_month
         ]
 
-        if student_attendance.empty:
+    # -------- FORMAT TABLE --------
 
-            st.info("No attendance records found for this student.")
+    attendance_display = student_attendance.copy()
 
-        else:
+    # Format date
+    attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
 
-            # Convert to datetime
-            student_attendance["date"] = pd.to_datetime(
-                student_attendance["date"],
-                errors="coerce"
-            )
+    attendance_display["Status"] = attendance_display["status"]
 
-            # Create Month column
-            student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
+    attendance_display = attendance_display[["Date","Status"]]
 
-            months = student_attendance["Month"].dropna().unique().tolist()
+    # -------- CALCULATE ATTENDANCE % --------
 
-            selected_month = st.selectbox(
-                "Select Month",
-                ["All Months"] + months
-            )
+    total_days = len(attendance_display)
 
-            if selected_month != "All Months":
+    present_days = len(
+        attendance_display[
+            attendance_display["Status"] == "Present"
+        ]
+    )
 
-                student_attendance = student_attendance[
-                    student_attendance["Month"] == selected_month
-                ]
+    if total_days > 0:
+        percentage = round((present_days / total_days) * 100, 2)
+    else:
+        percentage = 0
 
-            # -------- FORMAT TABLE --------
+    # Show percentage nicely
+    st.metric("Attendance Percentage", f"{percentage}%")
 
-            attendance_display = student_attendance.copy()
+    # Remove index numbers
+    attendance_display = attendance_display.reset_index(drop=True)
 
-            # Format date like 14th March 2026
-            attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
-
-            attendance_display["Status"] = attendance_display["status"]
-
-            attendance_display = attendance_display[["Date","Status"]]
-
-            # -------- CALCULATE ATTENDANCE % --------
-
-            total_days = len(attendance_display)
-
-            present_days = len(
-                attendance_display[
-                    attendance_display["Status"] == "Present"
-                ]
-            )
-
-            if total_days > 0:
-                percentage = round((present_days / total_days) * 100, 2)
-            else:
-                percentage = 0
-
-            attendance_display["Attendance %"] = f"{percentage}%"
-
-            # Remove index numbers
-            attendance_display = attendance_display.reset_index(drop=True)
-
-            st.dataframe(
-                attendance_display,
-                use_container_width=True,
-                hide_index=True
-            )
+    st.dataframe(
+        attendance_display,
+        use_container_width=True,
+        hide_index=True
+    )
