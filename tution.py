@@ -26,7 +26,7 @@ def load_data(key, columns):
         return df
 
     try:
-        return pd.read_csv(path)
+return pd.read_csv(path, dtype=str)
     except:
         df = pd.DataFrame(columns=columns)
         df.to_csv(path, index=False)
@@ -82,7 +82,7 @@ elif role == "Parent":
 
     if st.sidebar.button("Login"):
 
-        parent = students_df[students_df["phone"] == phone]
+parent = students_df[students_df["phone"].astype(str) == str(phone)]
 
         if not parent.empty:
             st.session_state.role = "parent"
