@@ -424,22 +424,33 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    child = students_df[
+    # Get all children with this phone number
+    children = students_df[
         students_df["phone"] == phone
     ]
 
-    if child.empty:
+    if children.empty:
 
         st.warning("Student not found")
 
     else:
 
-        child = child.iloc[0]
+        # Parent selects child
+        child_name = st.selectbox(
+            "Select Student",
+            children["name"]
+        )
+
+        child = children[
+            children["name"] == child_name
+        ].iloc[0]
 
         st.subheader(child["name"])
 
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
+
+        # ---------------- FEE HISTORY ----------------
 
         st.subheader("Fee History")
 
@@ -453,13 +464,19 @@ elif page == "Parent View":
 
         else:
 
-            # Add student name column
             fees_display = fees.copy()
+
             fees_display["Student Name"] = child["name"]
 
-            # Reorder columns
+            fees_display = fees_display.rename(columns={
+                "date": "Payment Date",
+                "month": "Fee Month",
+                "amount": "Amount",
+                "method": "Payment Method"
+            })
+
             fees_display = fees_display[
-                ["Student Name","date","amount","month","method"]
+                ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
             ]
 
             st.dataframe(fees_display, use_container_width=True)
