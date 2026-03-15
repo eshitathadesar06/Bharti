@@ -130,14 +130,13 @@ if "parent_phone" not in st.session_state:
 if "selected_child" not in st.session_state:
     st.session_state.selected_child = None
 
-# -------- ROLE SELECTION --------
-role = st.sidebar.selectbox("Select Role", ["Teacher", "Parent"])
+# -------- ROLE SELECT --------
+role = st.sidebar.selectbox("Login As", ["Teacher", "Parent"])
 
 # -------- TEACHER LOGIN --------
-if role == "Teacher":
+if role == "Teacher" and st.session_state.role != "teacher":
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
-
     if st.sidebar.button("Login"):
         if username == "admin" and password == "teacher123":
             st.session_state.role = "teacher"
@@ -145,55 +144,41 @@ if role == "Teacher":
         else:
             st.sidebar.error("Invalid login")
 
-    if st.session_state.role == "teacher":
-        page = st.sidebar.radio(
-            "Navigation",
-            ["Dashboard", "Student Management", "Attendance", "Fees", "Announcements"],
-            key="teacher_nav"
-        )
-        st.write(f"### Teacher Page: {page}")
-
 # -------- PARENT LOGIN --------
-elif role == "Parent":
+elif role == "Parent" and st.session_state.role != "parent":
     phone = st.sidebar.text_input("Enter Registered Phone Number")
-
     if st.sidebar.button("Login"):
         phone_clean = str(phone).strip()
         parent_children = students_df[students_df["phone"] == phone_clean]
-
         if not parent_children.empty:
             st.session_state.role = "parent"
             st.session_state.parent_phone = phone_clean
-            # Default to first child
             st.session_state.selected_child = parent_children.iloc[0]["name"]
             st.experimental_rerun()
         else:
             st.sidebar.error("Phone number not found")
 
-    if st.session_state.role == "parent":
-        # Show all children for this parent
-        children = students_df[students_df["phone"] == st.session_state.parent_phone]["name"].tolist()
-        st.session_state.selected_child = st.sidebar.selectbox(
-            "Select Child",
-            children,
-            index=children.index(st.session_state.selected_child)
-        )
-        st.write(f"### Parent Portal - Viewing: {st.session_state.selected_child}")
-        # Example: show child details
-        child_info = students_df[(students_df["phone"] == st.session_state.parent_phone) &
-                                 (students_df["name"] == st.session_state.selected_child)]
-        st.write(child_info)
-        
-# ---------------- TEACHER PANEL ----------------
+# -------- TEACHER PANEL --------
 if st.session_state.role == "teacher":
     page = st.sidebar.radio(
         "Navigation",
-        ["Dashboard","Student Management","Attendance","Fees"]
+        ["Dashboard","Student Management","Attendance","Fees","Announcements"],
+        key="teacher_nav"
     )
+    st.write(f"### Teacher Page: {page}")
 
-# ---------------- PARENT PANEL ----------------
+# -------- PARENT PANEL --------
 elif st.session_state.role == "parent":
     page = "Parent View"
+    children = students_df[students_df["phone"] == st.session_state.parent_phone]
+    if len(children) > 1:
+        st.session_state.selected_child = st.sidebar.selectbox(
+            "Select Child",
+            children["name"],
+            index=children["name"].tolist().index(st.session_state.selected_child)
+        )
+    child = children[children["name"] == st.session_state.selected_child].iloc[0]
+    st.write(f"### Viewing Child: {child['name']}")
 
 # ---------------- DASHBOARD ----------------
 
