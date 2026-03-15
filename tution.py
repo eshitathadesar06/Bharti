@@ -140,35 +140,57 @@ elif st.session_state.role == "parent":
 
 # ---------------- DASHBOARD ----------------
 
+# ---------------- DASHBOARD ----------------
+
 if page == "Dashboard":
 
     st.title("📊 Dashboard")
 
-    col1,col2,col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-    col1.metric("Total Students", len(students_df))
+    # Total Students
+    total_students = len(students_df)
+    col1.metric("Total Students", total_students)
 
-month = datetime.now().strftime("%Y-%m")
+    # Current Month
+    current_month = datetime.now().strftime("%Y-%m")
 
-if not students_df.empty:
+    # Calculate Monthly Fees Safely
+    if total_students > 0 and not fees_df.empty:
 
-    valid_ids = students_df["id"].astype(str)
+        # Only count fees from existing students
+        valid_student_ids = students_df["id"].astype(str)
 
-    month_fees = fees_df[
-        (fees_df["date"].astype(str).str.startswith(month)) &
-        (fees_df["student_id"].astype(str).isin(valid_ids))
-    ]["amount"].astype(float).sum()
+        filtered_fees = fees_df[
+            (fees_df["date"].astype(str).str.startswith(current_month)) &
+            (fees_df["student_id"].astype(str).isin(valid_student_ids))
+        ]
 
-else:
+        if not filtered_fees.empty:
+            month_fees = filtered_fees["amount"].astype(float).sum()
+        else:
+            month_fees = 0
 
-    month_fees = 0
+    else:
+        month_fees = 0
 
-    col3.metric("Total Batches", students_df["batch"].nunique())
+    col2.metric("Fees Collected (This Month)", f"₹{month_fees}")
+
+    # Total Batches
+    if not students_df.empty:
+        total_batches = students_df["batch"].nunique()
+    else:
+        total_batches = 0
+
+    col3.metric("Total Batches", total_batches)
+
+    # Students per Standard Chart
+    st.subheader("Students per Standard")
 
     if not students_df.empty:
-
         st.bar_chart(students_df["standard"].value_counts())
-
+    else:
+        st.info("No students added yet.")
 
 # ---------------- STUDENT MANAGEMENT ----------------
 
