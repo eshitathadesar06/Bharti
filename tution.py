@@ -539,7 +539,6 @@ elif page == "Parent View":
 
             st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
-
 # ---------------- PARENT VIEW ----------------
 
 elif page == "Parent View":
