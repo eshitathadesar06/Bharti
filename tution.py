@@ -293,18 +293,20 @@ elif page == "Fees":
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            month = st.text_input("Fee Month", datetime.now().strftime("%b %Y"))
+            fee_date = st.date_input("Select Fee Date", datetime.now())
+            month = fee_date.strftime("%b %Y")  # like "Mar 2026"
         with col2:
             amount = st.number_input("Amount", min_value=0)
         with col3:
             method = st.selectbox("Payment Method", ["Cash","UPI","Cheque"])
 
         if st.button("Record / Update Payment"):
-            date_now = datetime.now().strftime("%Y-%m-%d")
+            date_now = fee_date.strftime("%Y-%m-%d")
             fees_df = fees_df[
                 ~((fees_df["student_id"].astype(str) == student_id) & (fees_df["month"] == month))
             ]
-            new_fee = pd.DataFrame([[date_now, student_id, amount, month, method]], columns=["date","student_id","amount","month","method"])
+            new_fee = pd.DataFrame([[date_now, student_id, amount, month, method]], 
+                                   columns=["date","student_id","amount","month","method"])
             fees_df = pd.concat([fees_df, new_fee], ignore_index=True)
             fees_df.to_csv(FILES["fees"], index=False)
             st.success(f"Fee for {student} ({month}) recorded/updated!")
