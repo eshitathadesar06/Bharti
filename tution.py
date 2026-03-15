@@ -364,56 +364,35 @@ elif page == "Attendance":
                     st.success(f"{name} marked {status}")
 
 # ---------------- FEES ----------------
+if st.button("Record Payment"):
 
-elif page == "Fees":
+    student_id = str(data["id"])
 
-    st.title("💰 Fee Collection")
-
-    if students_df.empty:
-
-        st.warning("Add students first")
-
-    else:
-
-        student = st.selectbox(
-            "Student",
-            students_df["name"]
+    # Remove existing fee entry for same student and month
+    fees_df = fees_df[
+        ~(
+            (fees_df["student_id"].astype(str) == student_id) &
+            (fees_df["month"] == month)
         )
+    ]
 
-        data = students_df[
-            students_df["name"]==student
-        ].iloc[0]
+    # Add updated fee entry
+    new = pd.DataFrame(
+        [[
+            datetime.now().strftime("%Y-%m-%d"),
+            student_id,
+            amount,
+            month,
+            method
+        ]],
+        columns=fees_df.columns
+    )
 
-        amount = st.number_input("Amount", min_value=0)
+    fees_df = pd.concat([fees_df,new], ignore_index=True)
 
-        method = st.selectbox(
-            "Method",
-            ["Cash","UPI"]
-        )
+    fees_df.to_csv(FILES["fees"], index=False)
 
-        month = st.text_input(
-            "Month",
-            datetime.now().strftime("%b %Y")
-        )
-
-        if st.button("Record Payment"):
-
-            new = pd.DataFrame(
-                [[
-                    datetime.now().strftime("%Y-%m-%d"),
-                    data["id"],
-                    amount,
-                    month,
-                    method
-                ]],
-                columns=fees_df.columns
-            )
-
-            fees_df = pd.concat([fees_df,new], ignore_index=True)
-
-            fees_df.to_csv(FILES["fees"], index=False)
-
-            st.success("Payment recorded")
+    st.success("Fee recorded / updated successfully")
 
 
 # ---------------- PARENT VIEW ----------------
