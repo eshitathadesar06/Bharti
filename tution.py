@@ -373,7 +373,7 @@ elif page == "Fees":
         with col1:
             month_input = st.text_input("Fee Month", datetime.now().strftime("%b %Y"))
             try:
-                month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y")
+                month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y").title()
             except:
                 month = month_input
 
@@ -390,7 +390,10 @@ elif page == "Fees":
             fees_df["student_id"] = fees_df["student_id"].astype(str)
 
             fees_df = fees_df[
-                ~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))
+                ~(
+                    (fees_df["student_id"] == student_id) &
+                    (fees_df["month"].str.lower() == month.lower())
+                )
             ]
 
             new_fee = pd.DataFrame(
@@ -409,12 +412,17 @@ elif page == "Fees":
             fees_df["student_id"] = fees_df["student_id"].astype(str)
 
             deleted_rows = fees_df[
-                (fees_df["student_id"] == student_id) & (fees_df["month"] == month)
+                (fees_df["student_id"] == student_id) &
+                (fees_df["month"].str.lower() == month.lower())
             ]
 
             if not deleted_rows.empty:
+
                 fees_df = fees_df[
-                    ~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))
+                    ~(
+                        (fees_df["student_id"] == student_id) &
+                        (fees_df["month"].str.lower() == month.lower())
+                    )
                 ]
 
                 fees_df.to_csv(FILES["fees"], index=False)
