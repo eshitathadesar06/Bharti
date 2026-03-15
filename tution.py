@@ -146,17 +146,13 @@ if page == "Dashboard":
 
     col1, col2, col3 = st.columns(3)
 
-    # Total Students
     total_students = len(students_df)
     col1.metric("Total Students", total_students)
 
-    # Current Month
     current_month = datetime.now().strftime("%Y-%m")
 
-    # Calculate Monthly Fees Safely
     if total_students > 0 and not fees_df.empty:
 
-        # Only count fees from existing students
         valid_student_ids = students_df["id"].astype(str)
 
         filtered_fees = fees_df[
@@ -174,7 +170,6 @@ if page == "Dashboard":
 
     col2.metric("Fees Collected (This Month)", f"₹{month_fees}")
 
-    # Total Batches
     if not students_df.empty:
         total_batches = students_df["batch"].nunique()
     else:
@@ -182,7 +177,6 @@ if page == "Dashboard":
 
     col3.metric("Total Batches", total_batches)
 
-    # Students per Standard Chart
     st.subheader("Students per Standard")
 
     if not students_df.empty:
@@ -223,10 +217,8 @@ elif page == "Student Management":
 
         if submit and name:
 
-            # Clean phone input
             phone_clean = str(phone).replace(".0","").strip()
 
-            # Check if student already exists
             duplicate = students_df[
                 (students_df["name"].str.lower() == name.lower()) &
                 (students_df["phone"].astype(str) == phone_clean)
@@ -255,30 +247,17 @@ elif page == "Student Management":
 
     st.subheader("Students List")
 
-    st.dataframe(students_df, use_container_width=True)
+    # -------- SEARCH BAR --------
+    search_student = st.text_input("🔎 Search Student Name")
 
+    filtered_students = students_df
 
-    # -------- DELETE STUDENT --------
+    if search_student:
+        filtered_students = students_df[
+            students_df["name"].str.contains(search_student, case=False)
+        ]
 
-    st.subheader("Delete Student")
-
-    if not students_df.empty:
-
-        student_names = students_df["name"].tolist()
-
-        selected = st.selectbox("Select Student", student_names)
-
-        if st.button("Delete Student"):
-
-            students_df = students_df[
-                students_df["name"] != selected
-            ]
-
-            students_df.to_csv(FILES["students"], index=False)
-
-            st.success("Student deleted")
-
-            st.rerun()
+    st.dataframe(filtered_students, use_container_width=True)
 
 
 # ---------------- ATTENDANCE ----------------
@@ -313,17 +292,6 @@ elif page == "Attendance":
             sid = str(row["id"])
             name = row["name"]
 
-            # check existing attendance
-            existing = attendance_df[
-                (attendance_df["date"] == date_str)
-                & (attendance_df["student_id"].astype(str) == sid)
-            ]
-
-            default_status = "Present"
-
-            if not existing.empty:
-                default_status = existing.iloc[0]["status"]
-
             col1, col2 = st.columns([3,2])
 
             with col1:
@@ -334,7 +302,6 @@ elif page == "Attendance":
                 status = st.radio(
                     "Status",
                     ["Present","Absent"],
-                    index=0 if default_status=="Present" else 1,
                     key=f"{sid}_{date_str}"
                 )
 
@@ -371,12 +338,12 @@ elif page == "Fees":
     if students_df.empty:
         st.warning("Add students first")
     else:
-        # ---------------- STUDENT SELECTION ----------------
         student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         student_selection = st.selectbox("Student", student_options)
 
         student_id = student_selection.split("(")[-1].replace(")", "")
         selected_student = students_df[students_df["id"].astype(str) == student_id]
+
         if selected_student.empty:
             st.error("Selected student not found!")
             st.stop()
@@ -384,7 +351,6 @@ elif page == "Fees":
         data = selected_student.iloc[0]
         st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
 
-        # ---------------- INPUTS ----------------
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -400,43 +366,73 @@ elif page == "Fees":
         with col3:
             method = st.selectbox("Payment Method", ["Cash", "UPI", "Cheque"])
 
-        # ---------------- RECORD / UPDATE ----------------
         if st.button("Record / Update Payment"):
+
             date_now = datetime.now().strftime("%Y-%m-%d")
+
             fees_df["student_id"] = fees_df["student_id"].astype(str)
-            fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
+
+            fees_df = fees_df[
+                ~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))
+            ]
 
             new_fee = pd.DataFrame(
                 [[date_now, student_id, amount, month, method]],
                 columns=["date", "student_id", "amount", "month", "method"]
             )
+
             fees_df = pd.concat([fees_df, new_fee], ignore_index=True)
+
             fees_df.to_csv(FILES["fees"], index=False)
+
             st.success(f"Fee for {data['name']} ({month}) recorded/updated!")
 
-        # ---------------- DELETE FEE ----------------
         if st.button("Delete Fee Record"):
+
             fees_df["student_id"] = fees_df["student_id"].astype(str)
-            deleted_rows = fees_df[(fees_df["student_id"] == student_id) & (fees_df["month"] == month)]
+
+            deleted_rows = fees_df[
+                (fees_df["student_id"] == student_id) & (fees_df["month"] == month)
+            ]
+
             if not deleted_rows.empty:
-                fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
+                fees_df = fees_df[
+                    ~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))
+                ]
+
                 fees_df.to_csv(FILES["fees"], index=False)
+
                 st.success(f"Deleted fee for {data['name']} ({month})")
+
             else:
                 st.warning(f"No fee record found for {data['name']} ({month}) to delete.")
 
         # ---------------- SHOW CURRENT FEES ----------------
+
         st.subheader("Fee Records")
+
+        # -------- SEARCH BAR --------
+        search_fee = st.text_input("🔎 Search Student / Month")
+
         if fees_df.empty:
             st.info("No fee records yet.")
         else:
             fees_df["student_id"] = fees_df["student_id"].astype(str)
+
             fees_display = fees_df.merge(
                 students_df[["id", "name"]].astype(str),
                 left_on="student_id",
                 right_on="id",
                 how="left"
-            ).rename(columns={
+            )
+
+            if search_fee:
+                fees_display = fees_display[
+                    fees_display["name"].str.contains(search_fee, case=False) |
+                    fees_display["month"].str.contains(search_fee, case=False)
+                ]
+
+            fees_display = fees_display.rename(columns={
                 "name": "Student Name",
                 "date": "Payment Date",
                 "month": "Fee Month",
@@ -445,6 +441,7 @@ elif page == "Fees":
             })[
                 ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
             ]
+
             st.dataframe(fees_display, use_container_width=True)
 
 # ---------------- PARENT VIEW ----------------
@@ -455,7 +452,6 @@ elif page == "Parent View":
 
     phone = st.session_state.parent_phone
 
-    # Get all students linked to this phone number
     children = students_df[
         students_df["phone"].astype(str) == str(phone)
     ]
@@ -464,22 +460,18 @@ elif page == "Parent View":
         st.warning("No students found for this phone number")
 
     else:
-        # ---------------- STUDENT SELECTION ----------------
-        # Use name + ID to avoid duplicate names
+
         child_options = children.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         selected_child = st.selectbox("Select Student", child_options)
 
-        # Extract student ID from selection
         child_id = selected_child.split("(")[-1].replace(")", "")
 
-        # Fetch student safely using ID
         child = children[children["id"].astype(str) == child_id].iloc[0]
 
         st.subheader(child["name"])
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-        # -------- FEE HISTORY --------
         st.subheader("Fee History")
 
         student_fees = fees_df[fees_df["student_id"].astype(str) == str(child["id"])]
@@ -487,50 +479,12 @@ elif page == "Parent View":
         if student_fees.empty:
             st.info("No fees recorded")
         else:
-            fees_display = student_fees.copy()
-            fees_display["Student Name"] = child["name"]
-            fees_display = fees_display.rename(columns={
-                "date": "Payment Date",
-                "month": "Fee Month",
-                "amount": "Amount",
-                "method": "Payment Method"
-            })
-            fees_display = fees_display[
-                ["Student Name","Fee Month","Payment Date","Amount","Payment Method"]
-            ]
-            st.dataframe(fees_display, use_container_width=True)
+            st.dataframe(student_fees, use_container_width=True)
 
-        # -------- ATTENDANCE --------
         st.subheader("Attendance Records")
 
-        # Ensure student_id column in attendance is string
-        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+        student_attendance = attendance_df[
+            attendance_df["student_id"].astype(str) == str(child["id"])
+        ]
 
-        student_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
-
-        if student_attendance.empty:
-            st.info("No attendance records found for this student.")
-        else:
-            # ---------------- MONTH FILTER ----------------
-            # Extract unique months from attendance dates
-            if "date" in student_attendance.columns:
-                student_attendance["date"] = pd.to_datetime(student_attendance["date"], errors='coerce')
-                student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
-                months = student_attendance["Month"].dropna().unique().tolist()
-                selected_month = st.selectbox("Select Month", ["All Months"] + months)
-
-                if selected_month != "All Months":
-                    student_attendance = student_attendance[student_attendance["Month"] == selected_month]
-
-            # Display attendance table
-            attendance_display = student_attendance.copy()
-            
-            # Keep relevant columns
-            if "status" in attendance_display.columns and "date" in attendance_display.columns:
-                attendance_display = attendance_display[["date", "status"]].rename(
-                    columns={"date": "Date", "status": "Status"}
-                )
-            elif "date" in attendance_display.columns:
-                attendance_display = attendance_display.rename(columns={"date": "Date"})
-            
-            st.dataframe(attendance_display.sort_values("Date"), use_container_width=True)
+        st.dataframe(student_attendance, use_container_width=True)
