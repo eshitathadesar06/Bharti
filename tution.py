@@ -59,9 +59,9 @@ students_df["phone"] = (
 
 # ---------------- PAGE ----------------
 
-st.set_page_config(page_title="Tuition Manager", layout="wide")
+st.set_page_config(page_title="Bharti's Tution", layout="wide")
 
-st.sidebar.title("📚 Tuition Manager")
+st.sidebar.title("📚 Bharti's Tution")
 
 # ---------------- LOGIN ----------------
 
@@ -123,23 +123,41 @@ elif st.session_state.role == "parent":
 if page == "Dashboard":
     st.title("📊 Dashboard")
 
+    search = st.text_input("Search Student (Name/Standard/Batch)")
+    display_df = students_df.copy()
+    if search:
+        search_lower = search.lower()
+        display_df = display_df[
+            display_df.apply(lambda x: search_lower in str(x["name"]).lower() or 
+                                           search_lower in str(x["standard"]).lower() or 
+                                           search_lower in str(x["batch"]).lower(), axis=1)
+        ]
+
     col1,col2,col3 = st.columns(3)
-    col1.metric("Total Students", len(students_df))
+    col1.metric("Total Students", len(display_df))
 
     month = datetime.now().strftime("%Y-%m")
     month_fees = fees_df[
         fees_df["date"].astype(str).str.startswith(month)
     ]["amount"].astype(float).sum()
     col2.metric("Fees This Month", f"₹{month_fees}")
-    col3.metric("Total Batches", students_df["batch"].nunique())
+    col3.metric("Total Batches", display_df["batch"].nunique())
 
-    if not students_df.empty:
-        st.bar_chart(students_df["standard"].value_counts())
+    if not display_df.empty:
+        st.bar_chart(display_df["standard"].value_counts())
 
 # ---------------- STUDENT MANAGEMENT ----------------
 
 elif page == "Student Management":
     st.title("👨‍🎓 Student Management")
+
+    search = st.text_input("Search Student by Name", "")
+    display_df = students_df.copy()
+    if search:
+        display_df = display_df[display_df["name"].str.contains(search, case=False, na=False)]
+
+    st.subheader("Students List")
+    st.dataframe(display_df, use_container_width=True)
 
     with st.form("add_student"):
         st.subheader("Add Student")
@@ -169,9 +187,6 @@ elif page == "Student Management":
             students_df.to_csv(FILES["students"], index=False)
             st.success("Student added!")
             st.rerun()
-
-    st.subheader("Students List")
-    st.dataframe(students_df, use_container_width=True)
 
     st.subheader("Delete Student")
     if not students_df.empty:
@@ -232,6 +247,10 @@ elif page == "Attendance":
     else:
         batch_students = students_df[students_df["batch"]==batch]
 
+        search = st.text_input("Search Student in Batch", "")
+        if search:
+            batch_students = batch_students[batch_students["name"].str.contains(search, case=False, na=False)]
+
         if batch_students.empty:
             st.warning("No students in this batch")
         else:
@@ -286,7 +305,15 @@ elif page == "Fees":
     if students_df.empty:
         st.warning("Add students first")
     else:
-        student = st.selectbox("Student", students_df["name"])
+        search = st.text_input("Search Student or Month", "")
+        display_students = students_df.copy()
+        if search:
+            search_lower = search.lower()
+            display_students = display_students[display_students.apply(
+                lambda x: search_lower in str(x["name"]).lower() or search_lower in str(x["standard"]).lower() or search_lower in str(x["batch"]).lower(), axis=1
+            )]
+
+        student = st.selectbox("Student", display_students["name"])
         data = students_df[students_df["name"] == student].iloc[0]
         student_id = str(data["id"])
         st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
@@ -312,38 +339,45 @@ elif page == "Fees":
             st.success(f"Fee for {student} ({month}) recorded/updated!")
 
         st.subheader("Fee Records")
-        if fees_df.empty:
-            st.info("No fee records yet.")
+        display_fees = fees_df.copy()
+        if search:
+            search_lower = search.lower()
+            display_fees = display_fees.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="left")
+            display_fees = display_fees[
+                display_fees.apply(lambda x: search_lower in str(x["name"]).lower() or search_lower in str(x["month"]).lower(), axis=1)
+            ]
+
+        if display_fees.empty:
+            st.info("No fee records found")
         else:
-            fees_display = fees_df.copy()
-            fees_display = fees_display.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="left")
-            fees_display = fees_display.rename(columns={
+            display_fees = display_fees.merge(students_df[["id","name"]], left_on="student_id", right_on="id", how="left")
+            display_fees = display_fees.rename(columns={
                 "name":"Student Name",
                 "date":"Payment Date",
                 "month":"Fee Month",
                 "amount":"Amount",
                 "method":"Payment Method"
             })
-            fees_display = fees_display[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
-            st.dataframe(fees_display, use_container_width=True)
+            display_fees = display_fees[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
+            st.dataframe(display_fees, use_container_width=True)
 
             # -------- DELETE FEE RECORD --------
             st.subheader("Delete Fee Record")
-            student_names = fees_display["Student Name"].unique().tolist()
-            del_student = st.selectbox("Select Student", student_names, key="del_fee_student")
-            
-            student_fees = fees_display[fees_display["Student Name"]==del_student]
-            fee_months = student_fees["Fee Month"].tolist()
-            del_month = st.selectbox("Select Month to Delete", fee_months, key="del_fee_month")
+            student_names = display_fees["Student Name"].unique().tolist()
+            if student_names:
+                del_student = st.selectbox("Select Student", student_names, key="del_fee_student")
+                student_fees = display_fees[display_fees["Student Name"]==del_student]
+                fee_months = student_fees["Fee Month"].tolist()
+                del_month = st.selectbox("Select Month to Delete", fee_months, key="del_fee_month")
 
-            if st.button("Delete Fee Record"):
-                del_sid = str(students_df[students_df["name"]==del_student]["id"].iloc[0])
-                fees_df = fees_df[
-                    ~((fees_df["student_id"]==del_sid) & (fees_df["month"]==del_month))
-                ]
-                fees_df.to_csv(FILES["fees"], index=False)
-                st.success(f"Fee record deleted for {del_student}, {del_month}")
-                st.rerun()
+                if st.button("Delete Fee Record"):
+                    del_sid = str(students_df[students_df["name"]==del_student]["id"].iloc[0])
+                    fees_df = fees_df[
+                        ~((fees_df["student_id"]==del_sid) & (fees_df["month"]==del_month))
+                    ]
+                    fees_df.to_csv(FILES["fees"], index=False)
+                    st.success(f"Fee record deleted for {del_student}, {del_month}")
+                    st.rerun()
 
 # ---------------- PARENT VIEW ----------------
 
