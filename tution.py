@@ -122,7 +122,7 @@ if page == "Announcements" and st.session_state.role == "teacher":
         message = st.text_area("Message")
         submit = st.form_submit_button("Post Announcement")
         if submit and title and message:
-            # Save only the date, no time
+            # Save only the date (no time)
             new_row = pd.DataFrame(
                 [[datetime.now().strftime("%Y-%m-%d"), title, message]],
                 columns=["date","title","message"]
@@ -130,7 +130,7 @@ if page == "Announcements" and st.session_state.role == "teacher":
             announcements_df = pd.concat([announcements_df, new_row], ignore_index=True)
             announcements_df.to_csv(announcements_file, index=False)
             st.success("Announcement posted!")
-            st.rerun()  # <- just this, no extra text or comments
+            st.rerun()
 
     # Display & Delete Announcements
     if not announcements_df.empty:
