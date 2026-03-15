@@ -102,11 +102,14 @@ if st.session_state.role is None:
 
 # ---------------- TEACHER PANEL ----------------
 
+# ---------------- PAGE SELECTION ----------------
 if st.session_state.role == "teacher":
     page = st.sidebar.radio(
         "Navigation",
         ["Dashboard","Student Management","Attendance","Fees","Announcements"]
     )
+elif st.session_state.role == "parent":
+    page = "Parent View"
 
 # ---------------- TEACHER ANNOUNCEMENTS ----------------
 if page == "Announcements" and st.session_state.role == "teacher":
