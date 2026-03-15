@@ -26,7 +26,7 @@ def load_data(key, columns):
         return df
 
     try:
-return pd.read_csv(path, dtype=str)
+    return pd.read_csv(path, dtype=str)
     except:
         df = pd.DataFrame(columns=columns)
         df.to_csv(path, index=False)
