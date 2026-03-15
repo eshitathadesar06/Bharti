@@ -267,7 +267,7 @@ elif page == "Attendance":
 
         for _,row in batch_students.iterrows():
 
-            sid = row["id"]
+            sid = str(row["id"])
             name = row["name"]
 
             col1,col2 = st.columns([1,4])
@@ -278,7 +278,7 @@ elif page == "Attendance":
 
                     current = attendance_df[
                         (attendance_df["date"]==date_str)
-                        & (attendance_df["student_id"]==sid)
+                        & (attendance_df["student_id"].astype(str)==sid)
                     ]
 
                     status = "Present"
@@ -289,7 +289,7 @@ elif page == "Attendance":
                     attendance_df = attendance_df[
                         ~(
                             (attendance_df["date"]==date_str)
-                            & (attendance_df["student_id"]==sid)
+                            & (attendance_df["student_id"].astype(str)==sid)
                         )
                     ]
 
@@ -306,7 +306,6 @@ elif page == "Attendance":
 
             with col2:
                 st.write(f"{name} ({row['standard']})")
-
 
 # ---------------- FEES ----------------
 
