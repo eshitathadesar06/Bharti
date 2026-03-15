@@ -104,26 +104,37 @@ elif st.session_state.role == "parent":
     page = "Parent View"
 
 # ---------------- DASHBOARD ----------------
-if page == "Dashboard":
-    st.title("📊 Dashboard")
-    search = st.text_input("Search Student (Name/Standard/Batch)")
-    display_df = students_df.copy()
-    if search:
-        search_lower = search.lower()
-        display_df = display_df[
-            display_df.apply(lambda x: search_lower in str(x["name"]).lower() or 
-                                           search_lower in str(x["standard"]).lower() or 
-                                           search_lower in str(x["batch"]).lower(), axis=1)
-        ]
-    col1,col2,col3 = st.columns(3)
-    col1.metric("Total Students", len(display_df))
-    month = datetime.now().strftime("%Y-%m")
-    month_fees = fees_df[fees_df["date"].astype(str).str.startswith(month)]["amount"].astype(float).sum()
-    col2.metric("Fees This Month", f"₹{month_fees}")
-    col3.metric("Total Batches", display_df["batch"].nunique())
-    if not display_df.empty:
-        st.bar_chart(display_df["standard"].value_counts())
 
+if page == "Dashboard":
+
+    st.title("📊 Dashboard")
+
+    col1,col2,col3 = st.columns(3)
+
+    col1.metric("Total Students", len(students_df))
+
+    # ---------------- FIXED FEES THIS MONTH ----------------
+    # Only include fees for students that exist
+    valid_fees = fees_df.merge(
+        students_df[["id"]],
+        left_on="student_id",
+        right_on="id",
+        how="inner"
+    )
+
+    month = datetime.now().strftime("%Y-%m")
+    month_fees = valid_fees[
+        valid_fees["date"].astype(str).str.startswith(month)
+    ]["amount"].astype(float).sum()
+    # --------------------------------------------------------
+
+    col2.metric("Fees This Month", f"₹{month_fees}")
+
+    col3.metric("Total Batches", students_df["batch"].nunique())
+
+    if not students_df.empty:
+        st.bar_chart(students_df["standard"].value_counts())
+        
 # ---------------- STUDENT MANAGEMENT ----------------
 elif page == "Student Management":
     st.title("👨‍🎓 Student Management")
