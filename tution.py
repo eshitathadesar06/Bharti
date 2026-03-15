@@ -124,20 +124,18 @@ if "role" not in st.session_state:
     
 # -------- TEACHER LOGIN --------
 if role == "Teacher":
-
     username = st.sidebar.text_input("Username")
     password = st.sidebar.text_input("Password", type="password")
 
     if st.sidebar.button("Login"):
-
         if username == "admin" and password == "teacher123":
             st.session_state.role = "teacher"
             st.rerun()
         else:
             st.sidebar.error("Invalid login")
 
-    # ---------- Teacher Navigation (below login, only if logged in) ----------
-    if st.session_state.get("role") == "teacher":
+    # Navigation below login (only after login)
+    if st.session_state.role == "teacher":
         page = st.sidebar.radio(
             "Navigation",
             ["Dashboard","Student Management","Attendance","Fees","Announcements"],
@@ -146,16 +144,11 @@ if role == "Teacher":
 
 # -------- PARENT LOGIN --------
 elif role == "Parent":
-
     phone = st.sidebar.text_input("Enter Registered Phone Number")
 
     if st.sidebar.button("Login"):
-
         phone_clean = str(phone).replace(".0","").strip()
-
-        parent = students_df[
-            students_df["phone"] == phone_clean
-        ]
+        parent = students_df[students_df["phone"] == phone_clean]
 
         if not parent.empty:
             st.session_state.role = "parent"
@@ -164,8 +157,7 @@ elif role == "Parent":
         else:
             st.sidebar.error("Phone number not found")
 
-    # ---------- Parent Page Assignment (below login) ----------
-    if st.session_state.get("role") == "parent":
+    if st.session_state.role == "parent":
         page = "Parent View"
         
 # ---------------- TEACHER PANEL ----------------
