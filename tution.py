@@ -121,7 +121,6 @@ role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
 
 if "role" not in st.session_state:
     st.session_state.role = None
-
 # -------- TEACHER LOGIN --------
 if role == "Teacher":
 
@@ -136,13 +135,13 @@ if role == "Teacher":
         else:
             st.sidebar.error("Invalid login")
 
-   # ---------- Teacher Navigation (below login) ----------
-if st.session_state.role == "teacher":
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Dashboard","Student Management","Attendance","Fees","Announcements"],
-        key="teacher_nav"  # Add a unique key
-    )
+    # ---------- Teacher Navigation (below login, only if logged in) ----------
+    if st.session_state.get("role") == "teacher":
+        page = st.sidebar.radio(
+            "Navigation",
+            ["Dashboard","Student Management","Attendance","Fees","Announcements"],
+            key="teacher_nav"  # unique key
+        )
 
 # -------- PARENT LOGIN --------
 elif role == "Parent":
@@ -164,10 +163,10 @@ elif role == "Parent":
         else:
             st.sidebar.error("Phone number not found")
 
-    # ---------- Parent Navigation ----------
-if st.session_state.role == "parent":
-    page = "Parent View"
-
+    # ---------- Parent Page Assignment (below login) ----------
+    if st.session_state.get("role") == "parent":
+        page = "Parent View"
+        
 # ---------------- TEACHER PANEL ----------------
 if st.session_state.role == "teacher":
     page = st.sidebar.radio(
