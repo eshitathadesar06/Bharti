@@ -286,6 +286,9 @@ elif page == "Attendance":
 
     date_str = date.strftime("%Y-%m-%d")
 
+    # -------- BATCH HOLIDAY OPTION --------
+    batch_holiday = st.checkbox(f"📅 Declare Holiday for {batch} Batch")
+
     # -------- FILTER STUDENTS --------
     batch_students = students_df[
         students_df["batch"] == batch
@@ -315,12 +318,18 @@ elif page == "Attendance":
 
             with col2:
 
-                status = st.radio(
-                    "Status",
-                    ["Present", "Absent"],
-                    horizontal=True,
-                    key=f"{sid}_{date_str}"
-                )
+                # -------- IF HOLIDAY --------
+                if batch_holiday:
+                    status = "Holiday"
+                    st.info("Holiday")
+
+                else:
+                    status = st.radio(
+                        "Status",
+                        ["Present", "Absent"],
+                        horizontal=True,
+                        key=f"{sid}_{date_str}"
+                    )
 
                 if st.button("Save", key=f"save_{sid}_{date_str}"):
 
@@ -596,69 +605,96 @@ elif page == "Parent View":
 
             st.dataframe(fees_display, use_container_width=True, hide_index=True)
 
-        # -------- ATTENDANCE --------
+       # ---------------- ATTENDANCE ----------------
 
-        st.subheader("Attendance Records")
+elif page == "Attendance":
 
-        attendance_df["student_id"] = attendance_df["student_id"].astype(str)
+    st.title("📅 Attendance")
 
-        student_attendance = attendance_df[
-            attendance_df["student_id"] == str(child["id"])
+    date = st.date_input("Date", datetime.now())
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        batch = st.selectbox(
+            "Batch",
+            ["Morning", "Afternoon", "Evening"]
+        )
+
+    # -------- STANDARD FILTER --------
+    with col2:
+        standards = sorted(students_df["standard"].dropna().unique())
+        standard_filter = st.selectbox(
+            "Standard",
+            ["All"] + list(standards)
+        )
+
+    date_str = date.strftime("%Y-%m-%d")
+
+    # -------- BATCH HOLIDAY OPTION --------
+    batch_holiday = st.checkbox(f"📅 Declare Holiday for {batch} Batch")
+
+    # -------- FILTER STUDENTS --------
+    batch_students = students_df[
+        students_df["batch"] == batch
+    ]
+
+    if standard_filter != "All":
+        batch_students = batch_students[
+            batch_students["standard"] == standard_filter
         ]
 
-        if student_attendance.empty:
+    if batch_students.empty:
+        st.warning("No students found for this batch/standard")
 
-            st.info("No attendance records found for this student.")
+    else:
 
-        else:
+        st.subheader("Mark Attendance")
 
-            student_attendance = student_attendance.copy()
+        for _, row in batch_students.iterrows():
 
-            student_attendance["date"] = pd.to_datetime(
-                student_attendance["date"],
-                errors="coerce"
-            )
+            sid = str(row["id"])
+            name = row["name"]
 
-            student_attendance["Month"] = student_attendance["date"].dt.strftime("%b %Y")
+            col1, col2 = st.columns([3,2])
 
-            months = student_attendance["Month"].dropna().unique().tolist()
+            with col1:
+                st.write(f"**{name} ({row['standard']})**")
 
-            selected_month = st.selectbox(
-                "Select Month",
-                ["All Months"] + months
-            )
+            with col2:
 
-            if selected_month != "All Months":
+                # -------- IF HOLIDAY --------
+                if batch_holiday:
+                    status = "Holiday"
+                    st.info("Holiday")
 
-                student_attendance = student_attendance[
-                    student_attendance["Month"] == selected_month
-                ]
+                else:
+                    status = st.radio(
+                        "Status",
+                        ["Present", "Absent"],
+                        horizontal=True,
+                        key=f"{sid}_{date_str}"
+                    )
 
-            attendance_display = student_attendance.copy()
+                if st.button("Save", key=f"save_{sid}_{date_str}"):
 
-            attendance_display["Date"] = attendance_display["date"].dt.strftime("%d %B %Y")
+                    attendance_df = attendance_df[
+                        ~(
+                            (attendance_df["date"] == date_str)
+                            & (attendance_df["student_id"].astype(str) == sid)
+                        )
+                    ]
 
-            attendance_display["Status"] = attendance_display["status"]
+                    new_row = pd.DataFrame(
+                        [[date_str, sid, status]],
+                        columns=["date","student_id","status"]
+                    )
 
-            attendance_display = attendance_display[["Date","Status"]]
+                    attendance_df = pd.concat(
+                        [attendance_df, new_row],
+                        ignore_index=True
+                    )
 
-            total_days = len(attendance_display)
+                    attendance_df.to_csv(FILES["attendance"], index=False)
 
-            present_days = len(
-                attendance_display[
-                    attendance_display["Status"] == "Present"
-                ]
-            )
-
-            if total_days > 0:
-                percentage = round((present_days / total_days) * 100, 2)
-            else:
-                percentage = 0
-
-            st.metric("Attendance Percentage", f"{percentage}%")
-
-            st.dataframe(
-                attendance_display,
-                use_container_width=True,
-                hide_index=True
-            )
+                    st.success(f"{name} marked {status}")
