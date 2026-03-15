@@ -130,7 +130,7 @@ if "parent_phone" not in st.session_state:
 if "selected_child" not in st.session_state:
     st.session_state.selected_child = None
 
-# -------- ROLE SELECT --------
+# -------- ROLE SELECTION --------
 role = st.sidebar.selectbox("Login As", ["Teacher", "Parent"])
 
 # -------- TEACHER LOGIN --------
