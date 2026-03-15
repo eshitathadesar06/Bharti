@@ -121,6 +121,7 @@ role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
 
 if "role" not in st.session_state:
     st.session_state.role = None
+    
 # -------- TEACHER LOGIN --------
 if role == "Teacher":
 
@@ -140,7 +141,7 @@ if role == "Teacher":
         page = st.sidebar.radio(
             "Navigation",
             ["Dashboard","Student Management","Attendance","Fees","Announcements"],
-            key="teacher_nav"  # unique key
+            key="teacher_nav"
         )
 
 # -------- PARENT LOGIN --------
