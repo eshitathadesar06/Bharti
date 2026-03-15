@@ -321,6 +321,7 @@ elif page == "Fees":
             fees_df.to_csv(FILES["fees"], index=False)
             st.success(f"Fee for {student} ({month}) recorded/updated!")
 
+        # -------- SHOW CURRENT FEES --------
         st.subheader("Fee Records")
         if fees_df.empty:
             st.info("No fee records yet.")
@@ -336,6 +337,24 @@ elif page == "Fees":
             })
             fees_display = fees_display[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(fees_display, use_container_width=True)
+
+            # -------- DELETE FEE RECORD --------
+            st.subheader("Delete Fee Record")
+            student_names = fees_display["Student Name"].unique().tolist()
+            del_student = st.selectbox("Select Student", student_names, key="del_fee_student")
+            
+            student_fees = fees_display[fees_display["Student Name"]==del_student]
+            fee_months = student_fees["Fee Month"].tolist()
+            del_month = st.selectbox("Select Month to Delete", fee_months, key="del_fee_month")
+
+            if st.button("Delete Fee Record"):
+                del_sid = str(students_df[students_df["name"]==del_student]["id"].iloc[0])
+                fees_df = fees_df[
+                    ~((fees_df["student_id"]==del_sid) & (fees_df["month"]==del_month))
+                ]
+                fees_df.to_csv(FILES["fees"], index=False)
+                st.success(f"Fee record deleted for {del_student}, {del_month}")
+                st.rerun()
 
 # ---------------- PARENT VIEW ----------------
 
