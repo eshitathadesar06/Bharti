@@ -140,8 +140,6 @@ elif st.session_state.role == "parent":
 
 # ---------------- DASHBOARD ----------------
 
-# ---------------- DASHBOARD ----------------
-
 if page == "Dashboard":
 
     st.title("📊 Dashboard")
@@ -364,6 +362,7 @@ elif page == "Attendance":
                     st.success(f"{name} marked {status}")
 
 # ---------------- FEES ----------------
+
 # ---------------- FEES ----------------
 
 elif page == "Fees":
@@ -374,12 +373,24 @@ elif page == "Fees":
         st.warning("Add students first")
     else:
         # ---------------- STUDENT SELECTION ----------------
-        # Keep selectbox simple but include ID to avoid duplicate names
+        # Include ID in display to avoid duplicate names
         student_options = students_df.apply(lambda x: f"{x['name']} ({x['id']})", axis=1)
         student_selection = st.selectbox("Student", student_options)
-        student_id = int(student_selection.split("(")[-1].replace(")",""))
 
-        data = students_df[students_df["id"] == student_id].iloc[0]
+        # Ensure type matches DataFrame
+        try:
+            student_id = int(student_selection.split("(")[-1].replace(")",""))
+        except:
+            st.error("Invalid student selection!")
+            st.stop()
+
+        # Fetch student data safely
+        selected_student = students_df[students_df["id"] == student_id]
+        if selected_student.empty:
+            st.error("Selected student not found!")
+            st.stop()
+
+        data = selected_student.iloc[0]
 
         st.info(f"Standard: {data['standard']} | Batch: {data['batch']}")
 
@@ -387,14 +398,15 @@ elif page == "Fees":
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            # Keep text input but normalize month format
+            # Month input (keep as text but normalize)
             month_input = st.text_input(
                 "Fee Month",
                 datetime.now().strftime("%b %Y")
             )
-            # Ensure consistent format (e.g., "Mar 2026")
-            month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y") \
-                if pd.to_datetime(month_input, errors='coerce') is not pd.NaT else month_input
+            try:
+                month = pd.to_datetime(month_input, errors='coerce').strftime("%b %Y")
+            except:
+                month = month_input  # fallback
 
         with col2:
             amount = st.number_input("Amount", min_value=0)
@@ -409,7 +421,7 @@ elif page == "Fees":
             # Remove previous entry for same student & month
             fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
 
-            # Add updated entry
+            # Add new entry
             new_fee = pd.DataFrame(
                 [[date_now, student_id, amount, month, method]],
                 columns=["date", "student_id", "amount", "month", "method"]
