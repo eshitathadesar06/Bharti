@@ -414,9 +414,19 @@ elif page == "Fees":
             fees_df.to_csv(FILES["fees"], index=False)
             st.success(f"Fee for {data['name']} ({month}) recorded/updated!")
 
+        # ---------------- DELETE FEE ----------------
+        if st.button("Delete Fee Record"):
+            fees_df["student_id"] = fees_df["student_id"].astype(str)
+            deleted_rows = fees_df[(fees_df["student_id"] == student_id) & (fees_df["month"] == month)]
+            if not deleted_rows.empty:
+                fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month))]
+                fees_df.to_csv(FILES["fees"], index=False)
+                st.success(f"Deleted fee for {data['name']} ({month})")
+            else:
+                st.warning(f"No fee record found for {data['name']} ({month}) to delete.")
+
         # ---------------- SHOW CURRENT FEES ----------------
         st.subheader("Fee Records")
-
         if fees_df.empty:
             st.info("No fee records yet.")
         else:
@@ -435,36 +445,7 @@ elif page == "Fees":
             })[
                 ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
             ]
-
-            # ---------------- DELETE FEE BUTTON ----------------
-            st.subheader("Delete Fee Record")
-
-            # Filter fees for selected student
-            student_fees = fees_display[fees_display["Student Name"] == data["name"]]
-            if not student_fees.empty:
-                month_to_delete = st.selectbox("Select Fee Month to Delete", ["Select"] + student_fees["Fee Month"].unique().tolist())
-                if month_to_delete != "Select":
-                    if st.button("Delete Fee Record"):
-                        # Delete the record from fees_df
-                        fees_df = fees_df[~((fees_df["student_id"] == student_id) & (fees_df["month"] == month_to_delete))]
-                        fees_df.to_csv(FILES["fees"], index=False)
-                        st.success(f"Deleted fee for {data['name']} ({month_to_delete})")
-
-            # Display updated table immediately
-            st.dataframe(fees_df.merge(
-                students_df[["id", "name"]].astype(str),
-                left_on="student_id",
-                right_on="id",
-                how="left"
-            ).rename(columns={
-                "name": "Student Name",
-                "date": "Payment Date",
-                "month": "Fee Month",
-                "amount": "Amount",
-                "method": "Payment Method"
-            })[
-                ["Student Name", "Fee Month", "Payment Date", "Amount", "Payment Method"]
-            ], use_container_width=True)
+            st.dataframe(fees_display, use_container_width=True)
 
 # ---------------- PARENT VIEW ----------------
 
