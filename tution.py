@@ -14,6 +14,57 @@ FILES = {
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
+# ---------------- ANNOUNCEMENTS ----------------
+# Initialize announcements in session state
+if "announcements" not in st.session_state:
+    st.session_state.announcements = []  # list of dicts: {"date":..., "text":...}
+if "seen_announcements" not in st.session_state:
+    st.session_state.seen_announcements = set()  # indexes of announcements already seen by parent
+
+# ---------------- TEACHER ANNOUNCEMENTS PAGE ----------------
+if st.session_state.role == "teacher" and page == "Announcements":
+    st.title("📢 Announcements")
+
+    # Form to post new announcement
+    with st.form("add_announcement"):
+        text = st.text_area("Write Announcement", "")
+        submit = st.form_submit_button("Post Announcement")
+        if submit and text.strip():
+            date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            st.session_state.announcements.append({"date": date_now, "text": text.strip()})
+            st.success("Announcement posted!")
+            st.rerun()
+
+    # Display all announcements (newest first)
+    st.subheader("All Announcements")
+    if not st.session_state.announcements:
+        st.info("No announcements yet.")
+    else:
+        for ann in reversed(st.session_state.announcements):
+            st.markdown(f"**{ann['date']}** — {ann['text']}")
+
+# ---------------- PARENT ANNOUNCEMENTS ----------------
+if st.session_state.role == "parent":
+    # Show popup for new announcements
+    new_announcements = []
+    for idx, ann in enumerate(st.session_state.announcements):
+        if idx not in st.session_state.seen_announcements:
+            new_announcements.append((idx, ann))
+            st.session_state.seen_announcements.add(idx)
+
+    # Streamlit popup notification
+    for idx, ann in new_announcements:
+        st.toast(f"New Announcement: {ann['text']}")  # Requires Streamlit >=1.26
+
+    # Display all announcements
+    st.subheader("📢 Announcements from School")
+    if not st.session_state.announcements:
+        st.info("No announcements yet.")
+    else:
+        for ann in reversed(st.session_state.announcements):
+            st.markdown(f"**{ann['date']}** — {ann['text']}")
+            
+
 # ---------------- LOAD DATA ----------------
 def load_data(key, columns):
     path = FILES[key]
