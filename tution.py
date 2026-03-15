@@ -101,11 +101,6 @@ if st.session_state.role is None:
     st.stop()
 
 # ---------------- TEACHER PANEL ----------------
-if st.session_state.role == "teacher":
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Dashboard","Student Management","Attendance","Fees"]
-    )
 
 if st.session_state.role == "teacher":
     page = st.sidebar.radio(
