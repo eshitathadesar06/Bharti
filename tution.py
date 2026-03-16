@@ -268,6 +268,7 @@ elif page == "Attendance":
         search = st.text_input("Search Student in Batch", "")
         if search:
             batch_students = batch_students[batch_students["name"].str.contains(search, case=False, na=False)]
+
         if batch_students.empty:
             st.warning("No students in this batch")
         else:
@@ -277,35 +278,37 @@ elif page == "Attendance":
                 name = row["name"]
                 current_status = attendance_df[(attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid)]["status"]
                 current_status = current_status.iloc[0] if not current_status.empty else "Absent"
-                new_status = st.selectbox(f"{name} ({row['standard']})", ["Present","Absent"], index=0 if current_status=="Absent" else 1, key=f"{sid}_{date_str}")
+                new_status = st.selectbox(
+                    f"{name} ({row['standard']})",
+                    ["Present","Absent"],
+                    index=0 if current_status=="Absent" else 1,
+                    key=f"{sid}_{date_str}"
+                )
                 if st.button(f"Save Attendance for {name}", key=f"save_{sid}_{date_str}"):
                     attendance_df = attendance_df[~((attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid))]
                     attendance_df = pd.concat([attendance_df, pd.DataFrame([[date_str, sid, new_status]], columns=["date","student_id","status"])], ignore_index=True)
                     attendance_df.to_csv(FILES["attendance"], index=False)
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
-                    
-    # ---------------- ATTENDANCE PERCENTAGE ----------------
-    st.subheader("Attendance Percentage (This Month)")
+            
+            # ---------------- ATTENDANCE PERCENTAGE ----------------
+            st.subheader("Attendance Percentage (This Month)")
+            percentages = []
+            current_month = datetime.now().strftime("%Y-%m")
 
-    percentages = []
-    current_month = datetime.now().strftime("%Y-%m")
+            for _, s in batch_students.iterrows():
+                student_name = s["name"]
+                student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
+                monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
 
-    for _, s in batch_students.iterrows():
-        student_name = s["name"]
+                total_days = len(monthly_attendance)
+                present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
 
-        student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
-        monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
+                # Start at 100% if no attendance yet
+                percent = (present_days/total_days*100) if total_days>0 else 100
+                percentages.append([student_name, percent])
 
-        total_days = len(monthly_attendance)
-        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
-
-        # Start at 100% if no attendance yet
-        percent = (present_days/total_days*100) if total_days>0 else 100
-        percentages.append([student_name, percent])
-
-    # OUTSIDE the for loop!
-    st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
+            st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
     
 # ---------------- FEES ----------------
 elif page == "Fees":
