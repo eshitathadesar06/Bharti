@@ -284,15 +284,30 @@ elif page == "Attendance":
                     attendance_df.to_csv(FILES["attendance"], index=False)
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
-            st.subheader("Attendance Percentage")
-            percentages = []
-            for _, s in batch_students.iterrows():
-                sid = str(s["id"])
-                total_days = len(attendance_df[attendance_df["student_id"]==sid])
-                present_days = len(attendance_df[(attendance_df["student_id"]==sid) & (attendance_df["status"]=="Present")])
-                percent = (present_days/total_days*100) if total_days>0 else 0
-                percentages.append([s["name"], percent])
-            st.dataframe(pd.DataFrame(percentages, columns=["Student","Attendance %"]), use_container_width=True)
+                    
+          # ---------------- ATTENDANCE PERCENTAGE (Teacher) ----------------
+st.subheader("Attendance Percentage (This Month)")
+
+percentages = []
+
+# Get current month in YYYY-MM format
+current_month = datetime.now().strftime("%Y-%m")
+
+for _, s in batch_students.iterrows():
+    student_name = s["name"]
+    
+    # Filter this student's attendance for this month
+    student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
+    monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
+    
+    total_days = len(monthly_attendance)
+    present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
+    
+    # Start at 100% if no attendance recorded yet
+    percent = (present_days/total_days*100) if total_days>0 else 100
+    percentages.append([student_name, percent])
+
+st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
             
 # ---------------- FEES ----------------
 elif page == "Fees":
