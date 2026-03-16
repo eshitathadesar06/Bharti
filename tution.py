@@ -382,7 +382,6 @@ elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
 
     phone = st.session_state.parent_phone
-
     children = students_df[students_df["phone"] == phone]
 
     if children.empty:
@@ -399,18 +398,17 @@ elif page == "Parent View":
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-# ---------------- ATTENDANCE PERCENTAGE (Parent - This Month) ----------------
-current_month = datetime.now().strftime("%Y-%m")
-child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
-monthly_attendance = child_attendance[child_attendance["date"].str.startswith(current_month)]
+        # ---------------- ATTENDANCE PERCENTAGE (Parent - This Month) ----------------
+        current_month = datetime.now().strftime("%Y-%m")
+        child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
+        monthly_attendance = child_attendance[child_attendance["date"].str.startswith(current_month)]
 
-total_days = len(monthly_attendance)
-present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
+        total_days = len(monthly_attendance)
+        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
 
-# Start at 100% if no attendance recorded yet
-percent = (present_days/total_days*100) if total_days>0 else 100
-
-st.write(f"Attendance (This Month): {percent:.2f}% ({present_days}/{total_days} days)")
+        # Start at 100% if no attendance recorded yet
+        percent = (present_days/total_days*100) if total_days>0 else 100
+        st.write(f"Attendance (This Month): {percent:.2f}% ({present_days}/{total_days} days)")
 
         # ---------------- FEES ----------------
         st.subheader("Fee History")
@@ -430,11 +428,11 @@ st.write(f"Attendance (This Month): {percent:.2f}% ({present_days}/{total_days} 
             })[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(fees_display, use_container_width=True)
 
-st.subheader("📢 Announcements")
-if not announcements_df.empty:
-    announcements_df = announcements_df.sort_values("date", ascending=False)
-    for _, row in announcements_df.iterrows():
-        st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
-        st.write(row["message"])
-else:
-    st.info("No announcements yet.")
+    st.subheader("📢 Announcements")
+    if not announcements_df.empty:
+        announcements_df = announcements_df.sort_values("date", ascending=False)
+        for _, row in announcements_df.iterrows():
+            st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
+            st.write(row["message"])
+    else:
+        st.info("No announcements yet.")
