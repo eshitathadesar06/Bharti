@@ -268,7 +268,6 @@ elif page == "Attendance":
         search = st.text_input("Search Student in Batch", "")
         if search:
             batch_students = batch_students[batch_students["name"].str.contains(search, case=False, na=False)]
-
         if batch_students.empty:
             st.warning("No students in this batch")
         else:
@@ -278,76 +277,25 @@ elif page == "Attendance":
                 name = row["name"]
                 current_status = attendance_df[(attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid)]["status"]
                 current_status = current_status.iloc[0] if not current_status.empty else "Absent"
-                new_status = st.selectbox(
-                    f"{name} ({row['standard']})",
-                    ["Present","Absent"],
-                    index=0 if current_status=="Absent" else 1,
-                    key=f"{sid}_{date_str}"
-                )
+                new_status = st.selectbox(f"{name} ({row['standard']})", ["Present","Absent"], index=0 if current_status=="Absent" else 1, key=f"{sid}_{date_str}")
                 if st.button(f"Save Attendance for {name}", key=f"save_{sid}_{date_str}"):
                     attendance_df = attendance_df[~((attendance_df["date"]==date_str) & (attendance_df["student_id"]==sid))]
                     attendance_df = pd.concat([attendance_df, pd.DataFrame([[date_str, sid, new_status]], columns=["date","student_id","status"])], ignore_index=True)
                     attendance_df.to_csv(FILES["attendance"], index=False)
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
+            st.subheader("Attendance Percentage")
+            percentages = []
+            for _, s in batch_students.iterrows():
+                sid = str(s["id"])
+                total_days = len(attendance_df[attendance_df["student_id"]==sid])
+                present_days = len(attendance_df[(attendance_df["student_id"]==sid) & (attendance_df["status"]=="Present")])
+                percent = (present_days/total_days*100) if total_days>0 else 0
+                percentages.append([s["name"], percent])
+            st.dataframe(pd.DataFrame(percentages, columns=["Student","Attendance %"]), use_container_width=True)
             
-        # ---------------- ATTENDANCE PERCENTAGE ----------------
-        st.subheader("Attendance Percentage (This Month)")
-        percentages = []
-        current_month = datetime.now().strftime("%Y-%m")
-
-        for _, s in batch_students.iterrows():
-            student_name = s["name"]
-            student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
-            monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
-
-            total_days = len(monthly_attendance)
-            present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
-            percent = (present_days/total_days*100) if total_days>0 else 100
-            percentages.append([student_name, percent])
-
-        st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
-
-        # ---------------- ATTENDANCE CALENDAR ----------------
-        st.subheader("📅 Attendance Calendar")
-
-        import calendar
-
-        today = datetime.now()
-        year = today.year
-        month = today.month
-
-        _, num_days = calendar.monthrange(year, month)
-        month_dates = [datetime(year, month, day).strftime("%Y-%m-%d") for day in range(1, num_days+1)]
-
-        # Default: Not Marked
-        date_status = {d: "Not Marked" for d in month_dates}
-
-        # Holidays (Grey)
-        holidays_in_month = holidays_df[holidays_df["batch"]==batch]
-        for d in holidays_in_month["date"]:
-            if d in date_status:
-                date_status[d] = "Holiday"
-
-        # Attendance Marked (Green)
-        for d in month_dates:
-            day_attendance = attendance_df[(attendance_df["date"]==d) & (attendance_df["student_id"].isin(batch_students["id"].astype(str)))]
-            if not day_attendance.empty and date_status[d] != "Holiday":
-                date_status[d] = "Marked"
-
-        # Dataframe and color-code
-        calendar_df = pd.DataFrame({"Date": month_dates, "Status": [date_status[d] for d in month_dates]})
-        def color_status(val):
-            if val == "Marked":
-                return "background-color: lightgreen"
-            elif val == "Holiday":
-                return "background-color: lightgrey"
-            else:
-                return "background-color: lightcoral"
-        st.dataframe(calendar_df.style.applymap(color_status, subset=["Status"]), use_container_width=True)
-    
 # ---------------- FEES ----------------
-if page == "Fees":
+elif page == "Fees":
     st.title("💰 Fee Collection")
     if students_df.empty:
         st.warning("Add students first")
@@ -421,6 +369,7 @@ elif page == "Parent View":
     st.title("👨‍👩‍👧 Parent Portal")
 
     phone = st.session_state.parent_phone
+
     children = students_df[students_df["phone"] == phone]
 
     if children.empty:
@@ -437,17 +386,15 @@ elif page == "Parent View":
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-        # ---------------- ATTENDANCE PERCENTAGE (Parent - This Month) ----------------
-        current_month = datetime.now().strftime("%Y-%m")
+        # ---------------- ATTENDANCE PERCENTAGE ----------------
         child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
-        monthly_attendance = child_attendance[child_attendance["date"].str.startswith(current_month)]
-
-        total_days = len(monthly_attendance)
-        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
-
-        # Start at 100% if no attendance recorded yet
-        percent = (present_days/total_days*100) if total_days>0 else 100
-        st.write(f"Attendance (This Month): {percent:.2f}% ({present_days}/{total_days} days)")
+        if not child_attendance.empty:
+            total_days = len(child_attendance)
+            present_days = len(child_attendance[child_attendance["status"]=="Present"])
+            percent = (present_days/total_days)*100 if total_days > 0 else 0
+            st.write(f"Attendance: {percent:.2f}% ({present_days}/{total_days} days)")
+        else:
+            st.write("Attendance: No records yet")
 
         # ---------------- FEES ----------------
         st.subheader("Fee History")
@@ -467,11 +414,11 @@ elif page == "Parent View":
             })[["Student Name","Fee Month","Payment Date","Amount","Payment Method"]]
             st.dataframe(fees_display, use_container_width=True)
 
-    st.subheader("📢 Announcements")
-    if not announcements_df.empty:
-        announcements_df = announcements_df.sort_values("date", ascending=False)
-        for _, row in announcements_df.iterrows():
-            st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
-            st.write(row["message"])
-    else:
-        st.info("No announcements yet.")
+st.subheader("📢 Announcements")
+if not announcements_df.empty:
+    announcements_df = announcements_df.sort_values("date", ascending=False)
+    for _, row in announcements_df.iterrows():
+        st.markdown(f"**{row['title']}**  _(Posted on {row['date']})_")
+        st.write(row["message"])
+else:
+    st.info("No announcements yet.")                                                                        
