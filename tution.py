@@ -309,6 +309,55 @@ elif page == "Attendance":
                 percentages.append([student_name, percent])
 
             st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
+
+# ---------------- ATTENDANCE CALENDAR ----------------
+st.subheader("📅 Attendance Calendar")
+
+import calendar
+import numpy as np
+
+# Get current month and year
+today = datetime.now()
+year = today.year
+month = today.month
+
+# Generate all dates of the month
+_, num_days = calendar.monthrange(year, month)
+month_dates = [datetime(year, month, day).strftime("%Y-%m-%d") for day in range(1, num_days+1)]
+
+# Prepare calendar status
+# Default: "Not Marked" (Red)
+date_status = {d: "Not Marked" for d in month_dates}
+
+# Mark holidays as "Holiday" (Grey)
+holidays_in_month = holidays_df[holidays_df["batch"]==batch]
+for d in holidays_in_month["date"]:
+    if d in date_status:
+        date_status[d] = "Holiday"
+
+# Mark attendance days as "Present" (Green)
+for d in month_dates:
+    day_attendance = attendance_df[(attendance_df["date"]==d) & (attendance_df["student_id"].isin(batch_students["id"].astype(str)))]
+    if not day_attendance.empty and date_status[d] != "Holiday":
+        date_status[d] = "Marked"
+
+# Create dataframe for calendar view
+calendar_df = pd.DataFrame({
+    "Date": month_dates,
+    "Status": [date_status[d] for d in month_dates]
+})
+
+# Function to color-code
+def color_status(val):
+    if val == "Marked":
+        color = "background-color: lightgreen"
+    elif val == "Holiday":
+        color = "background-color: lightgrey"
+    else:
+        color = "background-color: lightcoral"
+    return color
+
+st.dataframe(calendar_df.style.applymap(color_status, subset=["Status"]), use_container_width=True)
     
 # ---------------- FEES ----------------
 elif page == "Fees":
