@@ -285,17 +285,16 @@ elif page == "Attendance":
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
                     
-# ---------------- ATTENDANCE PERCENTAGE (Teacher) ----------------
+# ---------------- ATTENDANCE PERCENTAGE ----------------
 st.subheader("Attendance Percentage (This Month)")
 
 percentages = []
-
 current_month = datetime.now().strftime("%Y-%m")
 
 for _, s in batch_students.iterrows():
     student_name = s["name"]
     
-    # Only current month attendance
+    # Filter this student's attendance for the current month
     student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
     monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
     
@@ -306,10 +305,11 @@ for _, s in batch_students.iterrows():
     percent = (present_days/total_days*100) if total_days>0 else 100
     percentages.append([student_name, percent])
 
+# OUTSIDE the for loop!
 st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
             
 # ---------------- FEES ----------------
-    elif page == "Fees":
+elif page == "Fees":
     st.title("💰 Fee Collection")
     if students_df.empty:
         st.warning("Add students first")
