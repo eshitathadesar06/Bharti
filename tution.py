@@ -285,29 +285,28 @@ elif page == "Attendance":
                     st.success(f"Attendance updated for {name}")
                     st.rerun()
                     
-# ---------------- ATTENDANCE PERCENTAGE ----------------
-st.subheader("Attendance Percentage (This Month)")
+    # ---------------- ATTENDANCE PERCENTAGE ----------------
+    st.subheader("Attendance Percentage (This Month)")
 
-percentages = []
-current_month = datetime.now().strftime("%Y-%m")
+    percentages = []
+    current_month = datetime.now().strftime("%Y-%m")
 
-for _, s in batch_students.iterrows():
-    student_name = s["name"]
-    
-    # Filter this student's attendance for the current month
-    student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
-    monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
-    
-    total_days = len(monthly_attendance)
-    present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
-    
-    # Start at 100% if no attendance yet
-    percent = (present_days/total_days*100) if total_days>0 else 100
-    percentages.append([student_name, percent])
+    for _, s in batch_students.iterrows():
+        student_name = s["name"]
 
-# OUTSIDE the for loop!
-st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
-            
+        student_attendance = attendance_df[attendance_df["student_id"]==str(s["id"])]
+        monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
+
+        total_days = len(monthly_attendance)
+        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present")]
+
+        # Start at 100% if no attendance yet
+        percent = (present_days/total_days*100) if total_days>0 else 100
+        percentages.append([student_name, percent])
+
+    # OUTSIDE the for loop!
+    st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
+    
 # ---------------- FEES ----------------
 elif page == "Fees":
     st.title("💰 Fee Collection")
