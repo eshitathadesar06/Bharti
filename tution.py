@@ -298,7 +298,7 @@ elif page == "Attendance":
         monthly_attendance = student_attendance[student_attendance["date"].str.startswith(current_month)]
 
         total_days = len(monthly_attendance)
-        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present")]
+        present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
 
         # Start at 100% if no attendance yet
         percent = (present_days/total_days*100) if total_days>0 else 100
