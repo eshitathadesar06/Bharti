@@ -57,8 +57,8 @@ else:
         announcements_df["standard"] = "All"
 
 # ---------------- PAGE ----------------
-st.set_page_config(page_title="Bharti's Tution", layout="wide")
-st.sidebar.title("📚 Bharti's Tution")
+st.set_page_config(page_title="Tution", layout="wide")
+st.sidebar.title("📚 Tution")
 
 # ---------------- LOGIN ----------------
 role = st.sidebar.selectbox("Login As", ["Teacher","Parent"])
