@@ -400,15 +400,18 @@ elif page == "Parent View":
         st.write("Standard:", child["standard"])
         st.write("Batch:", child["batch"])
 
-        # ---------------- ATTENDANCE PERCENTAGE ----------------
-        child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
-        if not child_attendance.empty:
-            total_days = len(child_attendance)
-            present_days = len(child_attendance[child_attendance["status"]=="Present"])
-            percent = (present_days/total_days)*100 if total_days > 0 else 0
-            st.write(f"Attendance: {percent:.2f}% ({present_days}/{total_days} days)")
-        else:
-            st.write("Attendance: No records yet")
+# ---------------- ATTENDANCE PERCENTAGE (Parent - This Month) ----------------
+current_month = datetime.now().strftime("%Y-%m")
+child_attendance = attendance_df[attendance_df["student_id"] == str(child["id"])]
+monthly_attendance = child_attendance[child_attendance["date"].str.startswith(current_month)]
+
+total_days = len(monthly_attendance)
+present_days = len(monthly_attendance[monthly_attendance["status"]=="Present"])
+
+# Start at 100% if no attendance recorded yet
+percent = (present_days/total_days*100) if total_days>0 else 100
+
+st.write(f"Attendance (This Month): {percent:.2f}% ({present_days}/{total_days} days)")
 
         # ---------------- FEES ----------------
         st.subheader("Fee History")
