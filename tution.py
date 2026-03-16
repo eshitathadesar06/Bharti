@@ -360,7 +360,7 @@ def color_status(val):
 st.dataframe(calendar_df.style.applymap(color_status, subset=["Status"]), use_container_width=True)
     
 # ---------------- FEES ----------------
-elif page == "Fees":
+if page == "Fees":
     st.title("💰 Fee Collection")
     if students_df.empty:
         st.warning("Add students first")
