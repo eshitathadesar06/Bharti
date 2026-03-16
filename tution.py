@@ -309,7 +309,7 @@ for _, s in batch_students.iterrows():
 st.dataframe(pd.DataFrame(percentages, columns=["Student Name","Attendance %"]), use_container_width=True)
             
 # ---------------- FEES ----------------
-elif page == "Fees":
+    elif page == "Fees":
     st.title("💰 Fee Collection")
     if students_df.empty:
         st.warning("Add students first")
